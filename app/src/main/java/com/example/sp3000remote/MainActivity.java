@@ -278,6 +278,10 @@ public class MainActivity extends Activity {
         LinearLayout volumeControls = row();
         ImageButton down = roundIconButton(R.drawable.ic_minus);
         ImageButton up = roundIconButton(R.drawable.ic_plus);
+        // Give the volume glyphs more visual weight inside their existing circles.
+        int volumeIconPadding = dp(6);
+        down.setPadding(volumeIconPadding, volumeIconPadding, volumeIconPadding, volumeIconPadding);
+        up.setPadding(volumeIconPadding, volumeIconPadding, volumeIconPadding, volumeIconPadding);
         down.setContentDescription("Volume down one step");
         up.setContentDescription("Volume up one step");
         enableVolumeRepeat(down, -1);
@@ -518,3 +522,4 @@ public class MainActivity extends Activity {
         else deviceName.setText(n.trim());
     }
 }
+
