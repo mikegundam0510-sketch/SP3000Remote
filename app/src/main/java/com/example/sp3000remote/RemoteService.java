@@ -29,27 +29,22 @@ public class RemoteService extends Service {
     public static final String ACTION_VOL_UP = "com.example.sp3000remote.VOL_UP";
     public static final String ACTION_VOL_DOWN = "com.example.sp3000remote.VOL_DOWN";
     public static final String ACTION_MUTE = "com.example.sp3000remote.MUTE";
-    public static final String ACTION_SCREEN_OFF = "com.example.sp3000remote.SCREEN_OFF";
-    public static final String ACTION_SCREEN_ON = "com.example.sp3000remote.SCREEN_ON";
     public static final String ACTION_STATE = "com.example.sp3000remote.STATE";
     public static final String EXTRA_ADDRESS = "address";
     public static final String EXTRA_STATE = "state";
     public static final String EXTRA_CONNECTED = "connected";
 
-    private static final String CHANNEL_ID = "sp3000_remote";
+    private static final String CHANNEL_ID = "dap_remote";
     private static final int NOTIFICATION_ID = 3000;
     private static final int REPORT_MEDIA = 1;
     private static volatile boolean connected = false;
 
-    // Consumer Control report. Bit 7 is Consumer Power (0x30), used as a short
-    // press of the player's power/screen button. This is more compatible with
-    // Android-based DAPs than Generic Desktop System Sleep/Wake usages.
     private static final byte[] HID_DESCRIPTOR = new byte[]{
         0x05,0x0C,0x09,0x01,(byte)0xA1,0x01,(byte)0x85,REPORT_MEDIA,
-        0x15,0x00,0x25,0x01,0x75,0x01,(byte)0x95,0x08,
+        0x15,0x00,0x25,0x01,0x75,0x01,(byte)0x95,0x07,
         0x09,(byte)0xCD,0x09,(byte)0xB5,0x09,(byte)0xB6,0x09,(byte)0xB7,
-        0x09,(byte)0xE9,0x09,(byte)0xEA,0x09,(byte)0xE2,0x09,0x30,
-        (byte)0x81,0x02,(byte)0xC0
+        0x09,(byte)0xE9,0x09,(byte)0xEA,0x09,(byte)0xE2,
+        (byte)0x81,0x02,0x75,0x01,(byte)0x95,0x01,(byte)0x81,0x03,(byte)0xC0
     };
 
     private BluetoothAdapter adapter;
@@ -72,7 +67,7 @@ public class RemoteService extends Service {
                 String address = pendingAddress;
                 if (address == null) address = getSharedPreferences("remote", MODE_PRIVATE).getString("address", null);
                 if (address != null) connectAddress(address);
-                else publishState("Ready — choose SP3000 and connect", false);
+                else publishState("Ready — choose DAP and connect", false);
             } else publishState("Bluetooth remote unavailable", false);
         }
 
@@ -148,8 +143,7 @@ public class RemoteService extends Service {
 
     private boolean isCommand(String action) {
         return ACTION_PLAY_PAUSE.equals(action) || ACTION_NEXT.equals(action) || ACTION_PREV.equals(action)
-            || ACTION_VOL_UP.equals(action) || ACTION_VOL_DOWN.equals(action) || ACTION_MUTE.equals(action)
-            || ACTION_SCREEN_OFF.equals(action) || ACTION_SCREEN_ON.equals(action);
+            || ACTION_VOL_UP.equals(action) || ACTION_VOL_DOWN.equals(action) || ACTION_MUTE.equals(action);
     }
 
     private void executeCommand(String action) {
@@ -159,13 +153,12 @@ public class RemoteService extends Service {
         else if (ACTION_VOL_UP.equals(action)) sendMedia(4);
         else if (ACTION_VOL_DOWN.equals(action)) sendMedia(5);
         else if (ACTION_MUTE.equals(action)) sendMedia(6);
-        else if (ACTION_SCREEN_OFF.equals(action) || ACTION_SCREEN_ON.equals(action)) sendMedia(7);
     }
 
     private void registerHid() {
         if (hid == null || !allowed()) return;
         BluetoothHidDeviceAppSdpSettings s = new BluetoothHidDeviceAppSdpSettings(
-            "SP3000 Remote", "Media remote for Astell&Kern SP3000", "SP3000 Remote",
+            "DAP Remote", "Bluetooth media remote for DAP", "DAP Remote",
             BluetoothHidDevice.SUBCLASS1_NONE, HID_DESCRIPTOR
         );
         hid.registerApp(s, null, null, executor, callback);
@@ -176,7 +169,7 @@ public class RemoteService extends Service {
         String address = pendingAddress;
         if (address == null) address = getSharedPreferences("remote", MODE_PRIVATE).getString("address", null);
         if (address != null) connectAddress(address);
-        else publishState("Open app once to select SP3000", false);
+        else publishState("Open app once to select your DAP", false);
     }
 
     private void connectAddress(String address) {
@@ -186,7 +179,7 @@ public class RemoteService extends Service {
             pendingAddress = address;
             publishState("Connecting to " + name(selected) + "…", false);
             hid.connect(selected);
-        } catch (Exception e) { publishState("Could not connect to saved SP3000", false); }
+        } catch (Exception e) { publishState("Could not connect to saved DAP", false); }
     }
 
     private void sendMedia(int bit) { sendReport(REPORT_MEDIA, (byte)(1 << bit)); }
@@ -194,7 +187,6 @@ public class RemoteService extends Service {
     private void sendReport(int reportId, byte value) {
         if (hid == null || selected == null || !connected || !allowed()) return;
         hid.sendReport(selected, reportId, new byte[]{value});
-        // Short press avoids an unwanted second volume step on some DAPs.
         handler.postDelayed(() -> {
             if (hid != null && selected != null && connected && allowed()) hid.sendReport(selected, reportId, new byte[]{0});
         }, 12);
@@ -214,15 +206,13 @@ public class RemoteService extends Service {
         PendingIntent content = PendingIntent.getActivity(this, 100, open, flags);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL_ID) : new Notification.Builder(this);
         b.setSmallIcon(android.R.drawable.ic_media_play)
-         .setContentTitle("SP3000 Remote")
+         .setContentTitle("DAP Remote")
          .setContentText(connected ? "Connected" : "Remote active — auto reconnect enabled")
          .setContentIntent(content).setOngoing(true).setVisibility(Notification.VISIBILITY_PUBLIC)
          .setCategory(Notification.CATEGORY_TRANSPORT)
          .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Previous", commandPi(ACTION_PREV, 1)).build())
          .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_play, "Play/Pause", commandPi(ACTION_PLAY_PAUSE, 2)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_next, "Next", commandPi(ACTION_NEXT, 3)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_lock_idle_lock, "Screen Off", commandPi(ACTION_SCREEN_OFF, 4)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_menu_view, "Wake", commandPi(ACTION_SCREEN_ON, 5)).build());
+         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_next, "Next", commandPi(ACTION_NEXT, 3)).build());
         return b.build();
     }
 
@@ -234,8 +224,8 @@ public class RemoteService extends Service {
 
     private void createChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel c = new NotificationChannel(CHANNEL_ID, "SP3000 Remote", NotificationManager.IMPORTANCE_LOW);
-            c.setDescription("SP3000 lock-screen remote controls");
+            NotificationChannel c = new NotificationChannel(CHANNEL_ID, "DAP Remote", NotificationManager.IMPORTANCE_LOW);
+            c.setDescription("DAP lock-screen remote controls");
             c.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             if (nm != null) nm.createNotificationChannel(c);
@@ -253,8 +243,8 @@ public class RemoteService extends Service {
     }
 
     private String name(BluetoothDevice d) {
-        if (d == null || !allowed()) return "SP3000";
-        String n = d.getName(); return n == null || n.trim().isEmpty() ? "SP3000" : n;
+        if (d == null || !allowed()) return "DAP";
+        String n = d.getName(); return n == null || n.trim().isEmpty() ? "DAP" : n;
     }
 
     @Override public IBinder onBind(Intent intent) { return null; }
