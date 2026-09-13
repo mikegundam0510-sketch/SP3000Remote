@@ -39,19 +39,17 @@ public class RemoteService extends Service {
     private static final String CHANNEL_ID = "sp3000_remote";
     private static final int NOTIFICATION_ID = 3000;
     private static final int REPORT_MEDIA = 1;
-    private static final int REPORT_SYSTEM = 2;
     private static volatile boolean connected = false;
 
+    // Consumer Control report. Bit 7 is Consumer Power (0x30), used as a short
+    // press of the player's power/screen button. This is more compatible with
+    // Android-based DAPs than Generic Desktop System Sleep/Wake usages.
     private static final byte[] HID_DESCRIPTOR = new byte[]{
         0x05,0x0C,0x09,0x01,(byte)0xA1,0x01,(byte)0x85,REPORT_MEDIA,
-        0x15,0x00,0x25,0x01,0x75,0x01,(byte)0x95,0x07,
+        0x15,0x00,0x25,0x01,0x75,0x01,(byte)0x95,0x08,
         0x09,(byte)0xCD,0x09,(byte)0xB5,0x09,(byte)0xB6,0x09,(byte)0xB7,
-        0x09,(byte)0xE9,0x09,(byte)0xEA,0x09,(byte)0xE2,
-        (byte)0x81,0x02,0x75,0x01,(byte)0x95,0x01,(byte)0x81,0x03,(byte)0xC0,
-        0x05,0x01,0x09,(byte)0x80,(byte)0xA1,0x01,(byte)0x85,REPORT_SYSTEM,
-        0x15,0x00,0x25,0x01,0x75,0x01,(byte)0x95,0x02,
-        0x09,(byte)0x82,0x09,(byte)0x83,(byte)0x81,0x02,
-        0x75,0x06,(byte)0x95,0x01,(byte)0x81,0x03,(byte)0xC0
+        0x09,(byte)0xE9,0x09,(byte)0xEA,0x09,(byte)0xE2,0x09,0x30,
+        (byte)0x81,0x02,(byte)0xC0
     };
 
     private BluetoothAdapter adapter;
@@ -161,8 +159,7 @@ public class RemoteService extends Service {
         else if (ACTION_VOL_UP.equals(action)) sendMedia(4);
         else if (ACTION_VOL_DOWN.equals(action)) sendMedia(5);
         else if (ACTION_MUTE.equals(action)) sendMedia(6);
-        else if (ACTION_SCREEN_OFF.equals(action)) sendSystem(0);
-        else if (ACTION_SCREEN_ON.equals(action)) sendSystem(1);
+        else if (ACTION_SCREEN_OFF.equals(action) || ACTION_SCREEN_ON.equals(action)) sendMedia(7);
     }
 
     private void registerHid() {
@@ -193,14 +190,14 @@ public class RemoteService extends Service {
     }
 
     private void sendMedia(int bit) { sendReport(REPORT_MEDIA, (byte)(1 << bit)); }
-    private void sendSystem(int bit) { sendReport(REPORT_SYSTEM, (byte)(1 << bit)); }
 
     private void sendReport(int reportId, byte value) {
         if (hid == null || selected == null || !connected || !allowed()) return;
         hid.sendReport(selected, reportId, new byte[]{value});
+        // Short press avoids an unwanted second volume step on some DAPs.
         handler.postDelayed(() -> {
             if (hid != null && selected != null && connected && allowed()) hid.sendReport(selected, reportId, new byte[]{0});
-        }, 40);
+        }, 12);
     }
 
     private PendingIntent commandPi(String action, int requestCode) {
