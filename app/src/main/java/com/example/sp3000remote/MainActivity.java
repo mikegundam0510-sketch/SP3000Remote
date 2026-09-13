@@ -14,8 +14,11 @@ import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -48,6 +51,8 @@ public class MainActivity extends Activity {
     private SeekBar volumeIndicator;
     private int approxVolume;
     private LinearLayout connectionCard;
+    private final Handler volumeRepeatHandler = new Handler(Looper.getMainLooper());
+    private Runnable volumeRepeatTask;
 
     private final BroadcastReceiver stateReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
@@ -86,6 +91,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onStop() {
         super.onStop();
+        stopVolumeRepeat();
         try { unregisterReceiver(stateReceiver); } catch (Exception ignored) {}
     }
 
@@ -268,8 +274,8 @@ public class MainActivity extends Activity {
         ImageButton up = roundIconButton(R.drawable.ic_plus);
         down.setContentDescription("Volume down one step");
         up.setContentDescription("Volume up one step");
-        down.setOnClickListener(v -> changeVolumeOneStep(-1));
-        up.setOnClickListener(v -> changeVolumeOneStep(1));
+        enableVolumeRepeat(down, -1);
+        enableVolumeRepeat(up, 1);
 
         // Display only: the bar follows +/- commands and cannot receive touch or key input.
         volumeIndicator = new SeekBar(this);
@@ -340,6 +346,36 @@ public class MainActivity extends Activity {
         volumeValue.setText(approxVolume + " / 150");
         getSharedPreferences("remote", MODE_PRIVATE).edit()
             .putInt("approx_volume", approxVolume).apply();
+    }
+
+    private void enableVolumeRepeat(View button, int direction) {
+        button.setOnTouchListener((view, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                changeVolumeOneStep(direction);
+                stopVolumeRepeat();
+                volumeRepeatTask = new Runnable() {
+                    @Override public void run() {
+                        changeVolumeOneStep(direction);
+                        volumeRepeatHandler.postDelayed(this, 90L);
+                    }
+                };
+                volumeRepeatHandler.postDelayed(volumeRepeatTask, 450L);
+                return true;
+            }
+            if (event.getAction() == MotionEvent.ACTION_UP
+                    || event.getAction() == MotionEvent.ACTION_CANCEL) {
+                stopVolumeRepeat();
+                return true;
+            }
+            return true;
+        });
+    }
+
+    private void stopVolumeRepeat() {
+        if (volumeRepeatTask != null) {
+            volumeRepeatHandler.removeCallbacks(volumeRepeatTask);
+            volumeRepeatTask = null;
+        }
     }
 
     private int clampVolume(int value) {
