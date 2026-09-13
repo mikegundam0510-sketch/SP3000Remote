@@ -3,33 +3,46 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="10dp"
-    android:background="#24262B">
+    android:padding="12dp"
+    android:background="#171A20">
 
     <TextView
         android:id="@+id/widget_status"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:text="SP3000 Remote"
         android:textColor="#FFFFFF"
+        android:textStyle="bold"
         android:textSize="14sp"
         android:gravity="center"
-        android:paddingBottom="8dp" />
+        android:background="#242A33" />
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-        <Button android:id="@+id/widget_prev" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:text="⏮" />
-        <Button android:id="@+id/widget_play" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:text="▶/❚❚" />
-        <Button android:id="@+id/widget_next" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:text="⏭" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+        <Button android:id="@+id/widget_prev" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:text="⏮" android:textSize="22sp" />
+        <Button android:id="@+id/widget_play" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:text="▶  ❚❚" android:textSize="16sp" />
+        <Button android:id="@+id/widget_next" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginStart="4dp" android:text="⏭" android:textSize="22sp" />
     </LinearLayout>
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-        <Button android:id="@+id/widget_down" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="−" />
-        <Button android:id="@+id/widget_mute" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="Mute" />
-        <Button android:id="@+id/widget_up" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="+" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="6dp">
+        <Button android:id="@+id/widget_down" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:text="−" android:textSize="22sp" />
+        <Button android:id="@+id/widget_mute" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:text="Mute" />
+        <Button android:id="@+id/widget_up" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:layout_marginStart="4dp" android:text="+" android:textSize="22sp" />
     </LinearLayout>
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-        <Button android:id="@+id/widget_screen_off" android:layout_width="0dp" android:layout_height="46dp" android:layout_weight="1" android:text="Screen Off" />
-        <Button android:id="@+id/widget_screen_on" android:layout_width="0dp" android:layout_height="46dp" android:layout_weight="1" android:text="Wake" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="6dp">
+        <Button android:id="@+id/widget_screen_off" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:text="Screen Off" />
+        <Button android:id="@+id/widget_screen_on" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:layout_marginStart="4dp" android:text="Wake Screen" />
     </LinearLayout>
 </LinearLayout>
