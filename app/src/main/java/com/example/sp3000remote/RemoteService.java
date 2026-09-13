@@ -43,13 +43,11 @@ public class RemoteService extends Service {
     private static volatile boolean connected = false;
 
     private static final byte[] HID_DESCRIPTOR = new byte[]{
-        // Report 1: Consumer Control media keys
         0x05,0x0C,0x09,0x01,(byte)0xA1,0x01,(byte)0x85,REPORT_MEDIA,
         0x15,0x00,0x25,0x01,0x75,0x01,(byte)0x95,0x07,
         0x09,(byte)0xCD,0x09,(byte)0xB5,0x09,(byte)0xB6,0x09,(byte)0xB7,
         0x09,(byte)0xE9,0x09,(byte)0xEA,0x09,(byte)0xE2,
         (byte)0x81,0x02,0x75,0x01,(byte)0x95,0x01,(byte)0x81,0x03,(byte)0xC0,
-        // Report 2: Generic Desktop System Control - Sleep / Wake Up
         0x05,0x01,0x09,(byte)0x80,(byte)0xA1,0x01,(byte)0x85,REPORT_SYSTEM,
         0x15,0x00,0x25,0x01,0x75,0x01,(byte)0x95,0x02,
         0x09,(byte)0x82,0x09,(byte)0x83,(byte)0x81,0x02,
@@ -60,8 +58,13 @@ public class RemoteService extends Service {
     private BluetoothHidDevice hid;
     private BluetoothDevice selected;
     private String pendingAddress;
+    private String queuedAction;
+    private boolean manualDisconnect = false;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Executor executor = Runnable::run;
+    private final Runnable reconnectRunnable = () -> {
+        if (!connected && !manualDisconnect) connectSaved();
+    };
 
     public static boolean isConnected() { return connected; }
 
@@ -71,21 +74,32 @@ public class RemoteService extends Service {
                 String address = pendingAddress;
                 if (address == null) address = getSharedPreferences("remote", MODE_PRIVATE).getString("address", null);
                 if (address != null) connectAddress(address);
-                else publishState("HID ready — choose SP3000 and connect", false);
-            } else publishState("HID registration stopped", false);
+                else publishState("Ready — choose SP3000 and connect", false);
+            } else publishState("Bluetooth remote unavailable", false);
         }
 
         @Override public void onConnectionStateChanged(BluetoothDevice device, int state) {
             if (state == BluetoothProfile.STATE_CONNECTED) {
                 selected = device;
                 connected = true;
+                manualDisconnect = false;
+                handler.removeCallbacks(reconnectRunnable);
                 if (allowed()) getSharedPreferences("remote", MODE_PRIVATE).edit().putString("address", device.getAddress()).apply();
                 publishState("Connected to " + name(device), true);
+                if (queuedAction != null) {
+                    String a = queuedAction;
+                    queuedAction = null;
+                    handler.postDelayed(() -> executeCommand(a), 180);
+                }
             } else if (state == BluetoothProfile.STATE_CONNECTING) {
                 publishState("Connecting to " + name(device) + "…", false);
             } else if (state == BluetoothProfile.STATE_DISCONNECTED) {
                 connected = false;
-                publishState("Disconnected", false);
+                publishState(manualDisconnect ? "Disconnected" : "Disconnected — reconnecting…", false);
+                if (!manualDisconnect) {
+                    handler.removeCallbacks(reconnectRunnable);
+                    handler.postDelayed(reconnectRunnable, 2500);
+                }
             }
         }
     };
@@ -96,7 +110,7 @@ public class RemoteService extends Service {
         }
         @Override public void onServiceDisconnected(int profile) {
             if (profile == BluetoothProfile.HID_DEVICE) {
-                hid = null; connected = false; publishState("Bluetooth HID service unavailable", false);
+                hid = null; connected = false; publishState("Bluetooth service unavailable", false);
             }
         }
     };
@@ -113,20 +127,42 @@ public class RemoteService extends Service {
         if (intent == null) return START_STICKY;
         String action = intent.getAction();
         if (ACTION_CONNECT.equals(action)) {
+            manualDisconnect = false;
             pendingAddress = intent.getStringExtra(EXTRA_ADDRESS);
             if (hid != null && pendingAddress != null) connectAddress(pendingAddress);
         } else if (ACTION_DISCONNECT.equals(action)) {
+            manualDisconnect = true;
+            queuedAction = null;
+            handler.removeCallbacks(reconnectRunnable);
             if (hid != null && selected != null && allowed()) hid.disconnect(selected);
-        } else if (ACTION_PLAY_PAUSE.equals(action)) sendMedia(0);
+        } else if (isCommand(action)) {
+            if (connected) executeCommand(action);
+            else {
+                queuedAction = action;
+                manualDisconnect = false;
+                publishState("Reconnecting to send command…", false);
+                connectSaved();
+            }
+        }
+        updateNotification();
+        return START_STICKY;
+    }
+
+    private boolean isCommand(String action) {
+        return ACTION_PLAY_PAUSE.equals(action) || ACTION_NEXT.equals(action) || ACTION_PREV.equals(action)
+            || ACTION_VOL_UP.equals(action) || ACTION_VOL_DOWN.equals(action) || ACTION_MUTE.equals(action)
+            || ACTION_SCREEN_OFF.equals(action) || ACTION_SCREEN_ON.equals(action);
+    }
+
+    private void executeCommand(String action) {
+        if (ACTION_PLAY_PAUSE.equals(action)) sendMedia(0);
         else if (ACTION_NEXT.equals(action)) sendMedia(1);
         else if (ACTION_PREV.equals(action)) sendMedia(2);
         else if (ACTION_VOL_UP.equals(action)) sendMedia(4);
         else if (ACTION_VOL_DOWN.equals(action)) sendMedia(5);
         else if (ACTION_MUTE.equals(action)) sendMedia(6);
-        else if (ACTION_SCREEN_OFF.equals(action)) sendSystem(0); // System Sleep
-        else if (ACTION_SCREEN_ON.equals(action)) sendSystem(1);  // System Wake Up
-        updateNotification();
-        return START_STICKY;
+        else if (ACTION_SCREEN_OFF.equals(action)) sendSystem(0);
+        else if (ACTION_SCREEN_ON.equals(action)) sendSystem(1);
     }
 
     private void registerHid() {
@@ -136,6 +172,14 @@ public class RemoteService extends Service {
             BluetoothHidDevice.SUBCLASS1_NONE, HID_DESCRIPTOR
         );
         hid.registerApp(s, null, null, executor, callback);
+    }
+
+    private void connectSaved() {
+        if (connected || hid == null || adapter == null || !allowed()) return;
+        String address = pendingAddress;
+        if (address == null) address = getSharedPreferences("remote", MODE_PRIVATE).getString("address", null);
+        if (address != null) connectAddress(address);
+        else publishState("Open app once to select SP3000", false);
     }
 
     private void connectAddress(String address) {
@@ -174,7 +218,7 @@ public class RemoteService extends Service {
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL_ID) : new Notification.Builder(this);
         b.setSmallIcon(android.R.drawable.ic_media_play)
          .setContentTitle("SP3000 Remote")
-         .setContentText(connected ? "Connected — lock screen remote ready" : "Remote running — open app to connect")
+         .setContentText(connected ? "Connected" : "Remote active — auto reconnect enabled")
          .setContentIntent(content).setOngoing(true).setVisibility(Notification.VISIBILITY_PUBLIC)
          .setCategory(Notification.CATEGORY_TRANSPORT)
          .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Previous", commandPi(ACTION_PREV, 1)).build())
@@ -194,7 +238,7 @@ public class RemoteService extends Service {
     private void createChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel c = new NotificationChannel(CHANNEL_ID, "SP3000 Remote", NotificationManager.IMPORTANCE_LOW);
-            c.setDescription("Lock-screen controls for SP3000 Remote");
+            c.setDescription("SP3000 lock-screen remote controls");
             c.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             if (nm != null) nm.createNotificationChannel(c);
@@ -220,6 +264,7 @@ public class RemoteService extends Service {
 
     @Override public void onDestroy() {
         connected = false;
+        handler.removeCallbacks(reconnectRunnable);
         if (hid != null && allowed()) {
             try { hid.unregisterApp(); } catch (Exception ignored) {}
             try { adapter.closeProfileProxy(BluetoothProfile.HID_DEVICE, hid); } catch (Exception ignored) {}
