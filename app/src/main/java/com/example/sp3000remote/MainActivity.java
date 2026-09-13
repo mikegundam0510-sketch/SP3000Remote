@@ -49,6 +49,7 @@ public class MainActivity extends Activity {
     private Spinner spinner;
     private Button connect;
     private SeekBar volumeIndicator;
+    private ImageButton playButton;
     private int approxVolume;
     private LinearLayout connectionCard;
     private final Handler volumeRepeatHandler = new Handler(Looper.getMainLooper());
@@ -63,6 +64,9 @@ public class MainActivity extends Activity {
             setStatus(s == null ? "Ready" : s, isConnected);
             setDeviceName(n);
             connect.setText(isConnected ? "Disconnect" : "Connect");
+            if (intent.hasExtra(RemoteService.EXTRA_PLAYING)) {
+                setPlayButtonIcon(intent.getBooleanExtra(RemoteService.EXTRA_PLAYING, false));
+            }
         }
     };
 
@@ -87,6 +91,7 @@ public class MainActivity extends Activity {
         IntentFilter f = new IntentFilter(RemoteService.ACTION_STATE);
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(stateReceiver, f, RECEIVER_NOT_EXPORTED);
         else registerReceiver(stateReceiver, f);
+        setPlayButtonIcon(getSharedPreferences("remote", MODE_PRIVATE).getBoolean("is_playing", false));
     }
 
     @Override protected void onStop() {
@@ -246,7 +251,8 @@ public class MainActivity extends Activity {
         LinearLayout playbackCard = card();
         LinearLayout transport = row();
         ImageButton prev = roundIconButton(R.drawable.ic_prev);
-        ImageButton play = roundIconButton(R.drawable.ic_play_pause);
+        playButton = roundIconButton(R.drawable.ic_play);
+        ImageButton play = playButton;
         ImageButton next = roundIconButton(R.drawable.ic_next);
         prev.setOnClickListener(v -> command(RemoteService.ACTION_PREV));
         play.setOnClickListener(v -> command(RemoteService.ACTION_PLAY_PAUSE));
@@ -380,6 +386,12 @@ public class MainActivity extends Activity {
 
     private int clampVolume(int value) {
         return Math.max(VOLUME_MIN, Math.min(VOLUME_MAX, value));
+    }
+
+    private void setPlayButtonIcon(boolean playing) {
+        if (playButton != null) {
+            playButton.setImageResource(playing ? R.drawable.ic_pause : R.drawable.ic_play);
+        }
     }
 
     private LinearLayout card() {

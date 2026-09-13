@@ -39,6 +39,7 @@ public class RemoteService extends Service {
     public static final String EXTRA_STATE = "state";
     public static final String EXTRA_CONNECTED = "connected";
     public static final String EXTRA_DEVICE_NAME = "device_name";
+    public static final String EXTRA_PLAYING = "playing";
 
     private static final String CHANNEL_ID = "dap_remote";
     private static final int NOTIFICATION_ID = 3000;
@@ -208,6 +209,7 @@ public class RemoteService extends Service {
                 .getBoolean("is_playing", false);
             getSharedPreferences("remote", MODE_PRIVATE).edit()
                 .putBoolean("is_playing", !playing).apply();
+            publishState(connected ? "Connected" : "Ready", connected);
             RemoteWidgetProvider.updateAll(this, connected);
         }
         else if (ACTION_NEXT.equals(action)) sendMedia(1);
@@ -279,16 +281,17 @@ public class RemoteService extends Service {
         PendingIntent content = PendingIntent.getActivity(this, 100, open, flags);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL_ID) : new Notification.Builder(this);
         String line = connected ? (currentDeviceName.isEmpty() ? "Connected" : "Connected · " + currentDeviceName) : "Auto connect active — waiting for DAP";
+        boolean playing = getSharedPreferences("remote", MODE_PRIVATE)
+            .getBoolean("is_playing", false);
         b.setSmallIcon(R.drawable.ic_dap_notification)
          .setContentTitle("DAP Remote")
          .setContentText(line)
          .setContentIntent(content).setOngoing(true).setVisibility(Notification.VISIBILITY_PUBLIC)
          .setCategory(Notification.CATEGORY_TRANSPORT)
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Previous", commandPi(ACTION_PREV, 1)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_play, "Play/Pause", commandPi(ACTION_PLAY_PAUSE, 2)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_next, "Next", commandPi(ACTION_NEXT, 3)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_lock_idle_lock, "Screen", commandPi(ACTION_SCREEN_TOGGLE, 4)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Back", commandPi(ACTION_BACK, 5)).build());
+         .setStyle(new Notification.MediaStyle().setShowActionsInCompactView(0, 1, 2))
+         .addAction(new Notification.Action.Builder(R.drawable.ic_prev, "", commandPi(ACTION_PREV, 1)).build())
+         .addAction(new Notification.Action.Builder(playing ? R.drawable.ic_pause : R.drawable.ic_play, "", commandPi(ACTION_PLAY_PAUSE, 2)).build())
+         .addAction(new Notification.Action.Builder(R.drawable.ic_next, "", commandPi(ACTION_NEXT, 3)).build());
         return b.build();
     }
 
@@ -314,6 +317,8 @@ public class RemoteService extends Service {
         i.putExtra(EXTRA_STATE, text);
         i.putExtra(EXTRA_CONNECTED, isConnected);
         i.putExtra(EXTRA_DEVICE_NAME, currentDeviceName);
+        i.putExtra(EXTRA_PLAYING, getSharedPreferences("remote", MODE_PRIVATE)
+            .getBoolean("is_playing", false));
         sendBroadcast(i);
         updateNotification();
     }
