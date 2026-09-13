@@ -9,8 +9,10 @@
 
     <ImageView
         android:id="@+id/widget_device_icon"
-        android:layout_width="48dp"
+        android:layout_width="54dp"
         android:layout_height="70dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="2dp"
         android:src="@drawable/ic_dap_hero"
         android:scaleType="centerInside"
         android:contentDescription="DAP" />
@@ -28,7 +30,7 @@
             android:id="@+id/widget_track_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Track unavailable"
+            android:text="SP3000 / SP4000"
             android:textColor="#F2F4F6"
             android:textSize="14sp"
             android:textStyle="bold"
@@ -44,9 +46,9 @@
             android:maxLines="1" />
     </LinearLayout>
 
-    <ImageButton android:id="@+id/widget_shuffle" android:layout_width="38dp" android:layout_height="48dp" android:minWidth="0dp" android:minHeight="0dp" android:padding="9dp" android:background="@android:color/transparent" android:src="@drawable/ic_shuffle" android:contentDescription="Shuffle" />
+    <ImageButton android:id="@+id/widget_shuffle" android:layout_width="38dp" android:layout_height="48dp" android:minWidth="0dp" android:minHeight="0dp" android:padding="9dp" android:background="@android:color/transparent" android:src="@drawable/ic_minus" android:contentDescription="Volume down" />
     <ImageButton android:id="@+id/widget_prev" android:layout_width="38dp" android:layout_height="48dp" android:minWidth="0dp" android:minHeight="0dp" android:padding="9dp" android:background="@android:color/transparent" android:src="@drawable/ic_prev" android:contentDescription="Previous" />
     <ImageButton android:id="@+id/widget_play" android:layout_width="46dp" android:layout_height="54dp" android:minWidth="0dp" android:minHeight="0dp" android:padding="11dp" android:background="@drawable/widget_circle_active" android:src="@drawable/ic_play_pause" android:contentDescription="Play or pause" />
     <ImageButton android:id="@+id/widget_next" android:layout_width="38dp" android:layout_height="48dp" android:minWidth="0dp" android:minHeight="0dp" android:padding="9dp" android:background="@android:color/transparent" android:src="@drawable/ic_next" android:contentDescription="Next" />
-    <ImageButton android:id="@+id/widget_repeat" android:layout_width="38dp" android:layout_height="48dp" android:minWidth="0dp" android:minHeight="0dp" android:padding="9dp" android:background="@android:color/transparent" android:src="@drawable/ic_repeat" android:contentDescription="Repeat" />
+    <ImageButton android:id="@+id/widget_repeat" android:layout_width="38dp" android:layout_height="48dp" android:minWidth="0dp" android:minHeight="0dp" android:padding="9dp" android:background="@android:color/transparent" android:src="@drawable/ic_plus" android:contentDescription="Volume up" />
 </LinearLayout>
