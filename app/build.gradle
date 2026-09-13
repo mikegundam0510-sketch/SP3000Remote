@@ -10,8 +10,8 @@ android {
         applicationId 'com.example.sp3000remote'
         minSdk 28
         targetSdk 35
-        versionCode 5
-        versionName '1.4'
+        versionCode 6
+        versionName '1.5'
     }
 
     sourceSets { main.res.srcDir "$buildDir/generated/dapIconRes" }
@@ -27,34 +27,38 @@ tasks.register('generateDapIcons') {
             <gradient android:type="radial" android:centerX="50%" android:centerY="44%" android:gradientRadius="88dp" android:startColor="#36414C" android:centerColor="#28313A" android:endColor="#151A20"/>
         </shape>'''
 
+        // Android adaptive foreground: tall, narrow SP4000-style silhouette kept inside the adaptive-icon safe zone.
         new File(d,'ic_launcher_foreground.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-            <path android:fillColor="#050607" android:pathData="M33,12 L70,12 L77,24 L73,34 L73,39 C79,40 81,44 81,49 C81,54 79,57 73,58 L73,65 L78,76 L74,86 L70,95 L33,95 Z"/>
-            <path android:fillColor="#050607" android:pathData="M29,29 L33,29 L33,34 L29,34 Z M29,39 L33,39 L33,44 L29,44 Z M29,49 L33,49 L33,54 L29,54 Z"/>
-            <path android:fillColor="#11151A" android:pathData="M73,39 C79,40 81,44 81,49 C81,54 79,57 73,58 Z"/>
-            <path android:fillColor="@android:color/transparent" android:strokeColor="#A6AFB9" android:strokeWidth="1.15" android:pathData="M33,12 L70,12 L77,24 M33,12 L33,95 L70,95 M70,95 L74,86 M73,34 L73,39 M73,58 L73,65"/>
-            <path android:fillColor="@android:color/transparent" android:strokeColor="#68717B" android:strokeWidth="0.7" android:pathData="M77,24 L73,34 M78,76 L74,86"/>
+            <path android:fillColor="#030405" android:pathData="M35,13 L69,13 L69,20 L77,31 L73,40 L73,48 C79,49 82,52 82,57 C82,62 79,65 73,66 L73,72 L77,82 L72,94 L35,94 Z"/>
+            <path android:fillColor="#030405" android:pathData="M31,33 L35,33 L35,38 L31,38 Z M31,42 L35,42 L35,47 L31,47 Z M31,51 L35,51 L35,56 L31,56 Z"/>
+            <path android:fillColor="#0B0D10" android:pathData="M73,48 C80,49 82,52 82,57 C82,62 80,65 73,66 Z"/>
+            <path android:fillColor="@android:color/transparent" android:strokeColor="#D3D8DE" android:strokeWidth="1.05" android:pathData="M35,13 L69,13 L77,31 M35,13 L35,94 L72,94 M72,94 L77,82 M73,40 L73,48 M73,66 L73,72"/>
+            <path android:fillColor="@android:color/transparent" android:strokeColor="#77808A" android:strokeWidth="0.7" android:pathData="M77,31 L73,40 M77,82 L72,94"/>
         </vector>'''
 
-        new File(d,'ic_dap_hero.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="150dp" android:height="200dp" android:viewportWidth="150" android:viewportHeight="200">
-            <path android:fillColor="#050607" android:pathData="M43,18 L98,18 L109,39 L102,52 L102,65 C111,66 115,73 115,82 C115,91 111,97 102,98 L102,111 L110,134 L103,154 L98,181 L43,181 Z"/>
-            <path android:fillColor="#050607" android:pathData="M36,53 L43,53 L43,61 L36,61 Z M36,70 L43,70 L43,78 L36,78 Z M36,87 L43,87 L43,95 L36,95 Z"/>
-            <path android:fillColor="#11151A" android:pathData="M102,65 C111,66 115,73 115,82 C115,91 111,97 102,98 Z"/>
-            <path android:fillColor="@android:color/transparent" android:strokeColor="#B2BBC5" android:strokeWidth="1.6" android:pathData="M43,18 L98,18 L109,39 M43,18 L43,181 L98,181 M98,181 L103,154 M102,52 L102,65 M102,98 L102,111"/>
-            <path android:fillColor="@android:color/transparent" android:strokeColor="#707984" android:strokeWidth="1" android:pathData="M109,39 L102,52 M110,134 L103,154"/>
+        // In-app hero follows the user's reference: long rectangular body, crisp silver edge, 3 left keys and right crown/facets.
+        new File(d,'ic_dap_hero.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="172dp" android:height="220dp" android:viewportWidth="172" android:viewportHeight="220">
+            <path android:fillColor="#020304" android:pathData="M48,7 L116,7 L116,19 L129,40 L121,53 L121,75 C130,77 134,83 134,92 C134,101 130,107 121,109 L121,130 L129,158 L122,177 L116,213 L48,213 Z"/>
+            <path android:fillColor="#020304" android:pathData="M40,48 L48,48 L48,57 L40,57 Z M40,65 L48,65 L48,74 L40,74 Z M40,82 L48,82 L48,91 L40,91 Z"/>
+            <path android:fillColor="#0A0D11" android:pathData="M121,75 C130,77 134,83 134,92 C134,101 130,107 121,109 Z"/>
+            <path android:fillColor="@android:color/transparent" android:strokeColor="#D7DCE2" android:strokeWidth="1.6" android:pathData="M48,7 L116,7 L129,40 M48,7 L48,213 L116,213 M116,213 L122,177 M121,53 L121,75 M121,109 L121,130"/>
+            <path android:fillColor="@android:color/transparent" android:strokeColor="#7F8791" android:strokeWidth="1" android:pathData="M129,40 L121,53 M129,158 L122,177"/>
         </vector>'''
 
+        // Android notification small icon: pure opaque white silhouette, transparent background.
         new File(d,'ic_dap_notification.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="108" android:viewportHeight="108">
-            <path android:fillColor="#FFFFFFFF" android:pathData="M33,12 L70,12 L77,24 L73,34 L73,39 C79,40 81,44 81,49 C81,54 79,57 73,58 L73,65 L78,76 L74,86 L70,95 L33,95 Z"/>
-            <path android:fillColor="#FFFFFFFF" android:pathData="M29,29 L33,29 L33,34 L29,34 Z M29,39 L33,39 L33,44 L29,44 Z M29,49 L33,49 L33,54 L29,54 Z"/>
+            <path android:fillColor="#FFFFFFFF" android:pathData="M35,13 L69,13 L69,20 L77,31 L73,40 L73,48 C79,49 82,52 82,57 C82,62 79,65 73,66 L73,72 L77,82 L72,94 L35,94 Z"/>
+            <path android:fillColor="#FFFFFFFF" android:pathData="M31,33 L35,33 L35,38 L31,38 Z M31,42 L35,42 L35,47 L31,47 Z M31,51 L35,51 L35,56 L31,56 Z"/>
         </vector>'''
 
-        new File(d,'ic_prev.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M6,5 H8 V19 H6 Z M9,12 L18,5 V19 Z"/></vector>'''
-        new File(d,'ic_play_pause.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M4,5 L11,12 L4,19 Z M14,5 H17 V19 H14 Z M19,5 H22 V19 H19 Z"/></vector>'''
-        new File(d,'ic_next.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M18,5 H20 V19 H18 Z M6,5 L15,12 L6,19 Z"/></vector>'''
-        new File(d,'ic_minus.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M5,11 H19 V13 H5 Z"/></vector>'''
-        new File(d,'ic_plus.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M11,5 H13 V11 H19 V13 H13 V19 H11 V13 H5 V11 H11 Z"/></vector>'''
-        new File(d,'ic_power.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M11,2 H13 V12 H11 Z"/><path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.2" android:strokeLineCap="round" android:pathData="M7,5.5 C4.6,7.1 3,9.8 3,12.8 C3,17.8 7,21.8 12,21.8 C17,21.8 21,17.8 21,12.8 C21,9.8 19.4,7.1 17,5.5"/></vector>'''
-        new File(d,'ic_back.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.2" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M9,7 L4,12 L9,17 M5,12 H14 C18,12 20,14 20,17 C20,20 18,22 14,22 H8"/></vector>'''
+        // Reference-matched 32dp media glyphs. All are intentionally the same visual weight/size.
+        new File(d,'ic_prev.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32"><path android:fillColor="#FFFFFFFF" android:pathData="M5,8 H8 V24 H5 Z M9,16 L24,7 V25 Z"/></vector>'''
+        new File(d,'ic_play_pause.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32"><path android:fillColor="#FFFFFFFF" android:pathData="M5,7 L17,16 L5,25 Z M20,7 H24 V25 H20 Z M26,7 H30 V25 H26 Z"/></vector>'''
+        new File(d,'ic_next.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32"><path android:fillColor="#FFFFFFFF" android:pathData="M24,8 H27 V24 H24 Z M8,7 L23,16 L8,25 Z"/></vector>'''
+        new File(d,'ic_minus.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32"><path android:fillColor="#FFFFFFFF" android:pathData="M7,14 H25 V18 H7 Z"/></vector>'''
+        new File(d,'ic_plus.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32"><path android:fillColor="#FFFFFFFF" android:pathData="M14,7 H18 V14 H25 V18 H18 V25 H14 V18 H7 V14 H14 Z"/></vector>'''
+        new File(d,'ic_power.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32"><path android:fillColor="#FFFFFFFF" android:pathData="M14.5,3 H17.5 V16 H14.5 Z"/><path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFFFF" android:strokeWidth="3" android:strokeLineCap="round" android:pathData="M9,7 C5.8,9.2 4,12.5 4,16 C4,22.6 9.4,28 16,28 C22.6,28 28,22.6 28,16 C28,12.5 26.2,9.2 23,7"/></vector>'''
+        new File(d,'ic_back.xml').text = '''<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32"><path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFFFF" android:strokeWidth="3" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M13,8 L6,15 L13,22 M7,15 H20 C25,15 28,18 28,22 C28,26 25,29 20,29 H11"/></vector>'''
 
         def a = '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@drawable/ic_launcher_background"/><foreground android:drawable="@drawable/ic_launcher_foreground"/><monochrome android:drawable="@drawable/ic_dap_notification"/></adaptive-icon>'
         new File(m,'ic_launcher.xml').text = a
