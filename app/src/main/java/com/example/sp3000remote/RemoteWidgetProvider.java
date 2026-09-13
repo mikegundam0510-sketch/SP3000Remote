@@ -28,6 +28,9 @@ public class RemoteWidgetProvider extends AppWidgetProvider {
         String deviceName = context.getSharedPreferences("remote", Context.MODE_PRIVATE)
             .getString("device_name", "SP3000 / SP4000");
         v.setTextViewText(R.id.widget_track_title, connected ? deviceName : "SP3000 / SP4000");
+        boolean playing = context.getSharedPreferences("remote", Context.MODE_PRIVATE)
+            .getBoolean("is_playing", false);
+        v.setImageViewResource(R.id.widget_play, playing ? R.drawable.ic_pause : R.drawable.ic_play);
         v.setOnClickPendingIntent(R.id.widget_shuffle, servicePi(context, RemoteService.ACTION_VOL_DOWN, 10));
         v.setOnClickPendingIntent(R.id.widget_prev, servicePi(context, RemoteService.ACTION_PREV, 11));
         v.setOnClickPendingIntent(R.id.widget_play, servicePi(context, RemoteService.ACTION_PLAY_PAUSE, 12));

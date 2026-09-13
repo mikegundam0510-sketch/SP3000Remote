@@ -202,7 +202,14 @@ public class RemoteService extends Service {
     }
 
     private void executeCommand(String action) {
-        if (ACTION_PLAY_PAUSE.equals(action)) sendMedia(0);
+        if (ACTION_PLAY_PAUSE.equals(action)) {
+            sendMedia(0);
+            boolean playing = getSharedPreferences("remote", MODE_PRIVATE)
+                .getBoolean("is_playing", false);
+            getSharedPreferences("remote", MODE_PRIVATE).edit()
+                .putBoolean("is_playing", !playing).apply();
+            RemoteWidgetProvider.updateAll(this, connected);
+        }
         else if (ACTION_NEXT.equals(action)) sendMedia(1);
         else if (ACTION_PREV.equals(action)) sendMedia(2);
         else if (ACTION_VOL_UP.equals(action)) sendMedia(4);
