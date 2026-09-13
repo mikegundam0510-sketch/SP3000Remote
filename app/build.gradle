@@ -10,7 +10,24 @@ android {
         applicationId 'com.example.sp3000remote'
         minSdk 28
         targetSdk 35
-        versionCode 1
-        versionName '1.0'
+        versionCode 2
+        versionName '1.1'
+    }
+
+    sourceSets { main.res.srcDir "$buildDir/generated/dapIconRes" }
+}
+
+def out = file("$buildDir/generated/dapIconRes")
+tasks.register('generateDapIcons') {
+    doLast {
+        def d = new File(out, 'drawable'); d.mkdirs()
+        def m = new File(out, 'mipmap-anydpi-v26'); m.mkdirs()
+        new File(d,'ic_launcher_background.xml').text = '<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="#25282D"/></shape>'
+        new File(d,'ic_launcher_foreground.xml').text = '<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#050607" android:pathData="M31,16 L72,16 L72,24 L79,34 L75,41 L75,47 L81,48 L81,60 L75,61 L75,67 L79,76 L75,84 L72,92 L31,92 Z"/><path android:fillColor="#050607" android:pathData="M27,30 L31,30 L31,36 L27,36 Z M27,41 L31,41 L31,47 L27,47 Z M27,52 L31,52 L31,58 L27,58 Z M76,49 L83,49 L83,59 L76,59 Z"/><path android:fillColor="@android:color/transparent" android:strokeColor="#737983" android:strokeWidth="1.1" android:pathData="M31,16 L72,16 L72,24 M31,16 L31,92 L72,92 M72,92 L75,84"/></vector>'
+        new File(d,'ic_dap_notification.xml').text = '<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#FFFFFFFF" android:pathData="M31,16 L72,16 L72,24 L79,34 L75,41 L75,47 L81,48 L81,60 L75,61 L75,67 L79,76 L75,84 L72,92 L31,92 Z"/><path android:fillColor="#FFFFFFFF" android:pathData="M27,30 L31,30 L31,36 L27,36 Z M27,41 L31,41 L31,47 L27,47 Z M27,52 L31,52 L31,58 L27,58 Z M76,49 L83,49 L83,59 L76,59 Z"/></vector>'
+        def a = '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@drawable/ic_launcher_background"/><foreground android:drawable="@drawable/ic_launcher_foreground"/><monochrome android:drawable="@drawable/ic_dap_notification"/></adaptive-icon>'
+        new File(m,'ic_launcher.xml').text = a
+        new File(m,'ic_launcher_round.xml').text = a
     }
 }
+preBuild.dependsOn generateDapIcons
