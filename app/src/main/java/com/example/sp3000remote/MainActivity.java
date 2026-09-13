@@ -272,8 +272,14 @@ public class MainActivity extends Activity {
 
         LinearLayout volumeCard = card();
         LinearLayout volumeHeader = row();
-        TextView volumeTitle = txt("Volume", 15, Color.rgb(234, 236, 240));
+        TextView volumeTitle = txt("Volume", 16, Color.rgb(234, 236, 240));
         volumeValue = txt(approxVolume + " / 150", 16, Color.WHITE);
+        Typeface volumeTypeface = Typeface.create("sans-serif", Typeface.NORMAL);
+        volumeTitle.setTypeface(volumeTypeface);
+        volumeValue.setTypeface(volumeTypeface);
+        volumeTitle.setIncludeFontPadding(false);
+        volumeValue.setIncludeFontPadding(false);
+        volumeTitle.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         volumeValue.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         volumeHeader.addView(volumeTitle, new LinearLayout.LayoutParams(0, dp(28), 1f));
         volumeHeader.addView(volumeValue, new LinearLayout.LayoutParams(0, dp(28), 1f));
