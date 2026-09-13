@@ -22,6 +22,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -77,9 +78,11 @@ public class MainActivity extends Activity {
     private String name(BluetoothDevice d){if(!allowed())return "Bluetooth device";String n=d.getName();return n==null||n.trim().isEmpty()?"Bluetooth device":n;}
 
     private void buildUi(){
-        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(18),dp(26),dp(18),dp(22));root.setBackgroundColor(Color.rgb(10,12,16));
+        ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(Color.rgb(10,12,16));
+        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(18),dp(24),dp(18),dp(24));root.setBackgroundColor(Color.rgb(10,12,16));scroll.addView(root,new ScrollView.LayoutParams(-1,-2));
+
         TextView title=txt("DAP REMOTE",28,Color.WHITE);title.setGravity(Gravity.CENTER);title.setTypeface(null,1);root.addView(title,match());
-        TextView sub=txt("Bluetooth HID Controller",12,Color.rgb(132,140,153));sub.setGravity(Gravity.CENTER);sub.setPadding(0,dp(4),0,dp(14));root.addView(sub,match());
+        TextView sub=txt("BR01 COMPATIBILITY BETA",12,Color.rgb(214,184,119));sub.setGravity(Gravity.CENTER);sub.setTypeface(null,1);sub.setPadding(0,dp(4),0,dp(14));root.addView(sub,match());
 
         status=txt("Preparing…",14,Color.WHITE);status.setGravity(Gravity.CENTER);status.setTypeface(null,1);status.setPadding(dp(12),dp(12),dp(12),dp(12));status.setBackground(bg(Color.rgb(31,35,42),16,Color.rgb(57,63,74)));LinearLayout.LayoutParams st=match();st.setMargins(0,0,0,dp(12));root.addView(status,st);
 
@@ -92,10 +95,19 @@ public class MainActivity extends Activity {
         LinearLayout transport=row();Button prev=control("⏮",28),play=control("▶  ❚❚",18),next=control("⏭",28);prev.setOnClickListener(v->command(RemoteService.ACTION_PREV));play.setOnClickListener(v->command(RemoteService.ACTION_PLAY_PAUSE));next.setOnClickListener(v->command(RemoteService.ACTION_NEXT));addEqual(transport,prev,64);addEqual(transport,play,64);addEqual(transport,next,64);controls.addView(transport,rowParams(12));
 
         controls.addView(section("VOLUME"),match());
-        LinearLayout vol=row();Button down=control("−",30),mute=control("Mute",15),up=control("+",30);mute.setOnClickListener(v->command(RemoteService.ACTION_MUTE));enableRepeat(down,RemoteService.ACTION_VOL_DOWN);enableRepeat(up,RemoteService.ACTION_VOL_UP);addEqual(vol,down,60);addEqual(vol,mute,60);addEqual(vol,up,60);controls.addView(vol,rowParams(8));
-        root.addView(controls,match());
+        LinearLayout vol=row();Button down=control("−",30),mute=control("Mute",15),up=control("+",30);mute.setOnClickListener(v->command(RemoteService.ACTION_MUTE));enableRepeat(down,RemoteService.ACTION_VOL_DOWN);enableRepeat(up,RemoteService.ACTION_VOL_UP);addEqual(vol,down,60);addEqual(vol,mute,60);addEqual(vol,up,60);controls.addView(vol,rowParams(16));
 
-        TextView hint=txt("Tap − / + = exactly 1 step. Hold for continuous volume. Auto reconnect stays enabled in the background.",12,Color.rgb(124,131,143));hint.setGravity(Gravity.CENTER);hint.setPadding(dp(6),dp(12),dp(6),0);root.addView(hint,match());setContentView(root);
+        controls.addView(section("BR01 SCREEN / BACK TEST"),match());
+        TextView warn=txt("After installing this Beta, delete the phone pairing on SP3000 and pair again before testing.",12,Color.rgb(214,184,119));warn.setPadding(dp(4),0,dp(4),dp(9));controls.addView(warn,match());
+
+        LinearLayout t1=row();Button a=test("A  Consumer Power"),b=test("B  Consumer Sleep");a.setOnClickListener(v->command(RemoteService.ACTION_BETA_CONSUMER_POWER));b.setOnClickListener(v->command(RemoteService.ACTION_BETA_CONSUMER_SLEEP));addEqual(t1,a,54);addEqual(t1,b,54);controls.addView(t1,rowParams(7));
+        LinearLayout t2=row();Button c=test("C  System Sleep"),d=test("D  System Wake");c.setOnClickListener(v->command(RemoteService.ACTION_BETA_SYSTEM_SLEEP));d.setOnClickListener(v->command(RemoteService.ACTION_BETA_SYSTEM_WAKE));addEqual(t2,c,54);addEqual(t2,d,54);controls.addView(t2,rowParams(7));
+        LinearLayout t3=row();Button e=test("E  Keyboard Power"),f=test("F  Keyboard Back");e.setOnClickListener(v->command(RemoteService.ACTION_BETA_KEYBOARD_POWER));f.setOnClickListener(v->command(RemoteService.ACTION_BETA_KEYBOARD_BACK));addEqual(t3,e,54);addEqual(t3,f,54);controls.addView(t3,rowParams(7));
+        Button g=wide("G  Consumer Back");g.setOnClickListener(v->command(RemoteService.ACTION_BETA_CONSUMER_BACK));LinearLayout.LayoutParams gp=match();gp.height=dp(54);gp.setMargins(0,0,0,dp(10));controls.addView(g,gp);
+
+        root.addView(controls,match());
+        TextView hint=txt("Test A–G one at a time. If any button turns the SP3000 screen off/on or performs Back, tell me the letter and exact reaction.",12,Color.rgb(124,131,143));hint.setGravity(Gravity.CENTER);hint.setPadding(dp(6),dp(8),dp(6),0);root.addView(hint,match());
+        setContentView(scroll);
     }
 
     private void enableRepeat(Button b,String action){
@@ -104,9 +116,7 @@ public class MainActivity extends Activity {
                 command(action);
                 repeatTask=new Runnable(){@Override public void run(){command(action);repeatHandler.postDelayed(this,170);}};
                 repeatHandler.postDelayed(repeatTask,450);
-            }else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){
-                stopRepeat();
-            }
+            }else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){stopRepeat();}
             return true;
         });
     }
@@ -118,8 +128,9 @@ public class MainActivity extends Activity {
     private GradientDrawable bg(int color,int radius,int stroke){GradientDrawable g=new GradientDrawable();g.setColor(color);g.setCornerRadius(dp(radius));g.setStroke(dp(1),stroke);return g;}
     private Button baseButton(String s){Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setGravity(Gravity.CENTER);b.setPadding(dp(5),0,dp(5),0);b.setBackground(bg(Color.rgb(33,37,44),14,Color.rgb(58,64,74)));return b;}
     private Button control(String s,int z){Button b=baseButton(s);b.setTextSize(z);return b;}
+    private Button test(String s){Button b=baseButton(s);b.setTextSize(12);return b;}
     private Button small(String s){Button b=baseButton(s);b.setTextSize(14);return b;}
-    private Button wide(String s){Button b=baseButton(s);b.setTextSize(16);return b;}
+    private Button wide(String s){Button b=baseButton(s);b.setTextSize(15);return b;}
     private TextView txt(String s,int z,int c){TextView v=new TextView(this);v.setText(s);v.setTextSize(z);v.setTextColor(c);return v;}
     private LinearLayout.LayoutParams match(){return new LinearLayout.LayoutParams(-1,-2);}
     private int dp(int d){return Math.round(d*getResources().getDisplayMetrics().density);}
