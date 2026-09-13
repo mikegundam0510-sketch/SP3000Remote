@@ -285,11 +285,19 @@ public class RemoteService extends Service {
         boolean playing = getSharedPreferences("remote", MODE_PRIVATE)
             .getBoolean("is_playing", false);
         RemoteViews expanded = new RemoteViews(getPackageName(), R.layout.notification_expanded);
+        expanded.setTextViewText(R.id.notification_device_name,
+            currentDeviceName.isEmpty() ? "DAP device" : currentDeviceName);
+        expanded.setTextViewText(R.id.notification_connection_status,
+            connected ? "Connected" : "Disconnected");
+        expanded.setTextColor(R.id.notification_connection_status,
+            connected ? 0xFF4BE477 : 0xFF9299A3);
         expanded.setImageViewResource(R.id.notification_play,
             playing ? R.drawable.ic_pause : R.drawable.ic_play);
+        expanded.setOnClickPendingIntent(R.id.notification_vol_down, commandPi(ACTION_VOL_DOWN, 4));
         expanded.setOnClickPendingIntent(R.id.notification_prev, commandPi(ACTION_PREV, 1));
         expanded.setOnClickPendingIntent(R.id.notification_play, commandPi(ACTION_PLAY_PAUSE, 2));
         expanded.setOnClickPendingIntent(R.id.notification_next, commandPi(ACTION_NEXT, 3));
+        expanded.setOnClickPendingIntent(R.id.notification_vol_up, commandPi(ACTION_VOL_UP, 5));
         b.setSmallIcon(R.drawable.ic_dap_notification)
          .setContentTitle("DAP Remote")
          .setContentText(line)

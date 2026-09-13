@@ -3,17 +3,43 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:gravity="center"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
     android:paddingTop="8dp"
     android:paddingBottom="8dp">
+
+    <TextView
+        android:id="@+id/notification_device_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SP3000 / SP4000"
+        android:textColor="#F2F4F6"
+        android:textSize="17sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/notification_connection_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="Connected"
+        android:textColor="#4BE477"
+        android:textSize="14sp"
+        android:maxLines="1" />
+
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_height="68dp"
+        android:layout_marginTop="6dp"
         android:orientation="horizontal"
         android:gravity="center">
-        <ImageButton android:id="@+id/notification_prev" android:layout_width="64dp" android:layout_height="56dp" android:padding="15dp" android:background="@android:color/transparent" android:src="@drawable/ic_prev" android:contentDescription="Previous" />
-        <ImageButton android:id="@+id/notification_play" android:layout_width="72dp" android:layout_height="64dp" android:padding="17dp" android:background="@android:color/transparent" android:src="@drawable/ic_play" android:contentDescription="Play or pause" />
-        <ImageButton android:id="@+id/notification_next" android:layout_width="64dp" android:layout_height="56dp" android:padding="15dp" android:background="@android:color/transparent" android:src="@drawable/ic_next" android:contentDescription="Next" />
+        <ImageButton android:id="@+id/notification_vol_down" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:minWidth="0dp" android:minHeight="0dp" android:padding="15dp" android:background="@android:color/transparent" android:src="@drawable/ic_minus" android:contentDescription="Volume down" />
+        <ImageButton android:id="@+id/notification_prev" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:minWidth="0dp" android:minHeight="0dp" android:padding="15dp" android:background="@android:color/transparent" android:src="@drawable/ic_prev" android:contentDescription="Previous" />
+        <ImageButton android:id="@+id/notification_play" android:layout_width="0dp" android:layout_height="64dp" android:layout_weight="1" android:minWidth="0dp" android:minHeight="0dp" android:padding="17dp" android:background="@android:color/transparent" android:src="@drawable/ic_play" android:contentDescription="Play or pause" />
+        <ImageButton android:id="@+id/notification_next" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:minWidth="0dp" android:minHeight="0dp" android:padding="15dp" android:background="@android:color/transparent" android:src="@drawable/ic_next" android:contentDescription="Next" />
+        <ImageButton android:id="@+id/notification_vol_up" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:minWidth="0dp" android:minHeight="0dp" android:padding="15dp" android:background="@android:color/transparent" android:src="@drawable/ic_plus" android:contentDescription="Volume up" />
     </LinearLayout>
 </LinearLayout>
 
