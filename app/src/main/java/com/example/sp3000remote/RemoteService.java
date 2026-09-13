@@ -29,15 +29,8 @@ public class RemoteService extends Service {
     public static final String ACTION_VOL_UP = "com.example.sp3000remote.VOL_UP";
     public static final String ACTION_VOL_DOWN = "com.example.sp3000remote.VOL_DOWN";
     public static final String ACTION_MUTE = "com.example.sp3000remote.MUTE";
-
-    // BR01 compatibility beta commands.
-    public static final String ACTION_BETA_CONSUMER_POWER = "com.example.sp3000remote.BETA_CONSUMER_POWER";
-    public static final String ACTION_BETA_CONSUMER_SLEEP = "com.example.sp3000remote.BETA_CONSUMER_SLEEP";
-    public static final String ACTION_BETA_SYSTEM_SLEEP = "com.example.sp3000remote.BETA_SYSTEM_SLEEP";
-    public static final String ACTION_BETA_SYSTEM_WAKE = "com.example.sp3000remote.BETA_SYSTEM_WAKE";
-    public static final String ACTION_BETA_KEYBOARD_POWER = "com.example.sp3000remote.BETA_KEYBOARD_POWER";
-    public static final String ACTION_BETA_KEYBOARD_BACK = "com.example.sp3000remote.BETA_KEYBOARD_BACK";
-    public static final String ACTION_BETA_CONSUMER_BACK = "com.example.sp3000remote.BETA_CONSUMER_BACK";
+    public static final String ACTION_SCREEN_TOGGLE = "com.example.sp3000remote.SCREEN_TOGGLE";
+    public static final String ACTION_BACK = "com.example.sp3000remote.BACK";
 
     public static final String ACTION_STATE = "com.example.sp3000remote.STATE";
     public static final String EXTRA_ADDRESS = "address";
@@ -52,26 +45,19 @@ public class RemoteService extends Service {
     private static final int REPORT_CONSUMER_EXT = 4;
     private static volatile boolean connected = false;
 
-    // Multi-profile HID descriptor for BR01 compatibility testing.
-    // Report 1: existing media controls.
-    // Report 2: Generic Desktop System Sleep / Wake.
-    // Report 3: standard keyboard report (Power 0x66 / Esc 0x29).
-    // Report 4: 16-bit Consumer Control array (Power 0x30, Sleep 0x32, AC Back 0x224).
+    // Keep the beta descriptor layout unchanged so existing SP3000 pairing remains compatible.
     private static final byte[] HID_DESCRIPTOR = new byte[]{
-        // Consumer media bit field (existing controls)
         0x05,0x0C,0x09,0x01,(byte)0xA1,0x01,(byte)0x85,REPORT_MEDIA,
         0x15,0x00,0x25,0x01,0x75,0x01,(byte)0x95,0x07,
         0x09,(byte)0xCD,0x09,(byte)0xB5,0x09,(byte)0xB6,0x09,(byte)0xB7,
         0x09,(byte)0xE9,0x09,(byte)0xEA,0x09,(byte)0xE2,
         (byte)0x81,0x02,0x75,0x01,(byte)0x95,0x01,(byte)0x81,0x03,(byte)0xC0,
 
-        // Generic Desktop System Control: Sleep / Wake
         0x05,0x01,0x09,(byte)0x80,(byte)0xA1,0x01,(byte)0x85,REPORT_SYSTEM,
         0x15,0x00,0x25,0x01,0x75,0x01,(byte)0x95,0x02,
         0x09,(byte)0x82,0x09,(byte)0x83,(byte)0x81,0x02,
         0x75,0x06,(byte)0x95,0x01,(byte)0x81,0x03,(byte)0xC0,
 
-        // Standard keyboard report
         0x05,0x01,0x09,0x06,(byte)0xA1,0x01,(byte)0x85,REPORT_KEYBOARD,
         0x05,0x07,0x19,(byte)0xE0,0x29,(byte)0xE7,0x15,0x00,0x25,0x01,
         0x75,0x01,(byte)0x95,0x08,(byte)0x81,0x02,
@@ -79,7 +65,6 @@ public class RemoteService extends Service {
         (byte)0x95,0x06,0x75,0x08,0x15,0x00,0x25,0x65,
         0x05,0x07,0x19,0x00,0x29,0x65,(byte)0x81,0x00,(byte)0xC0,
 
-        // 16-bit Consumer Control array for Android-style extended usages
         0x05,0x0C,0x09,0x01,(byte)0xA1,0x01,(byte)0x85,REPORT_CONSUMER_EXT,
         0x15,0x00,0x26,(byte)0xFF,0x0F,0x19,0x00,0x2A,(byte)0xFF,0x0F,
         0x75,0x10,(byte)0x95,0x01,(byte)0x81,0x00,(byte)0xC0
@@ -182,10 +167,7 @@ public class RemoteService extends Service {
     private boolean isCommand(String action) {
         return ACTION_PLAY_PAUSE.equals(action) || ACTION_NEXT.equals(action) || ACTION_PREV.equals(action)
             || ACTION_VOL_UP.equals(action) || ACTION_VOL_DOWN.equals(action) || ACTION_MUTE.equals(action)
-            || ACTION_BETA_CONSUMER_POWER.equals(action) || ACTION_BETA_CONSUMER_SLEEP.equals(action)
-            || ACTION_BETA_SYSTEM_SLEEP.equals(action) || ACTION_BETA_SYSTEM_WAKE.equals(action)
-            || ACTION_BETA_KEYBOARD_POWER.equals(action) || ACTION_BETA_KEYBOARD_BACK.equals(action)
-            || ACTION_BETA_CONSUMER_BACK.equals(action);
+            || ACTION_SCREEN_TOGGLE.equals(action) || ACTION_BACK.equals(action);
     }
 
     private void executeCommand(String action) {
@@ -195,19 +177,14 @@ public class RemoteService extends Service {
         else if (ACTION_VOL_UP.equals(action)) sendMedia(4);
         else if (ACTION_VOL_DOWN.equals(action)) sendMedia(5);
         else if (ACTION_MUTE.equals(action)) sendMedia(6);
-        else if (ACTION_BETA_CONSUMER_POWER.equals(action)) sendConsumerUsage(0x0030);
-        else if (ACTION_BETA_CONSUMER_SLEEP.equals(action)) sendConsumerUsage(0x0032);
-        else if (ACTION_BETA_SYSTEM_SLEEP.equals(action)) sendSystem(0);
-        else if (ACTION_BETA_SYSTEM_WAKE.equals(action)) sendSystem(1);
-        else if (ACTION_BETA_KEYBOARD_POWER.equals(action)) sendKeyboard(0x66);
-        else if (ACTION_BETA_KEYBOARD_BACK.equals(action)) sendKeyboard(0x29);
-        else if (ACTION_BETA_CONSUMER_BACK.equals(action)) sendConsumerUsage(0x0224);
+        else if (ACTION_SCREEN_TOGGLE.equals(action)) sendConsumerUsage(0x0030);
+        else if (ACTION_BACK.equals(action)) sendConsumerUsage(0x0224);
     }
 
     private void registerHid() {
         if (hid == null || !allowed()) return;
         BluetoothHidDeviceAppSdpSettings s = new BluetoothHidDeviceAppSdpSettings(
-            "DAP Remote Beta", "BR01 compatibility test remote", "DAP Remote",
+            "DAP Remote", "Bluetooth remote for DAP", "DAP Remote",
             BluetoothHidDevice.SUBCLASS1_NONE, HID_DESCRIPTOR
         );
         hid.registerApp(s, null, null, executor, callback);
@@ -232,13 +209,6 @@ public class RemoteService extends Service {
     }
 
     private void sendMedia(int bit) { sendReport(REPORT_MEDIA, new byte[]{(byte)(1 << bit)}, new byte[]{0}); }
-    private void sendSystem(int bit) { sendReport(REPORT_SYSTEM, new byte[]{(byte)(1 << bit)}, new byte[]{0}); }
-
-    private void sendKeyboard(int usage) {
-        byte[] press = new byte[8];
-        press[2] = (byte)usage;
-        sendReport(REPORT_KEYBOARD, press, new byte[8]);
-    }
 
     private void sendConsumerUsage(int usage) {
         byte[] press = new byte[]{(byte)(usage & 0xFF), (byte)((usage >> 8) & 0xFF)};
@@ -267,13 +237,15 @@ public class RemoteService extends Service {
         PendingIntent content = PendingIntent.getActivity(this, 100, open, flags);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL_ID) : new Notification.Builder(this);
         b.setSmallIcon(android.R.drawable.ic_media_play)
-         .setContentTitle("DAP Remote Beta")
-         .setContentText(connected ? "Connected — BR01 compatibility test" : "Remote active — auto reconnect enabled")
+         .setContentTitle("DAP Remote")
+         .setContentText(connected ? "Connected" : "Remote active — auto reconnect enabled")
          .setContentIntent(content).setOngoing(true).setVisibility(Notification.VISIBILITY_PUBLIC)
          .setCategory(Notification.CATEGORY_TRANSPORT)
          .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Previous", commandPi(ACTION_PREV, 1)).build())
          .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_play, "Play/Pause", commandPi(ACTION_PLAY_PAUSE, 2)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_next, "Next", commandPi(ACTION_NEXT, 3)).build());
+         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_next, "Next", commandPi(ACTION_NEXT, 3)).build())
+         .addAction(new Notification.Action.Builder(android.R.drawable.ic_lock_idle_lock, "Screen", commandPi(ACTION_SCREEN_TOGGLE, 4)).build())
+         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Back", commandPi(ACTION_BACK, 5)).build());
         return b.build();
     }
 
