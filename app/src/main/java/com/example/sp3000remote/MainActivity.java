@@ -179,6 +179,15 @@ public class MainActivity extends Activity {
         root.setGravity(Gravity.CENTER_HORIZONTAL);
         root.setPadding(dp(18), dp(10), dp(18), dp(28));
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
+        if (Build.VERSION.SDK_INT >= 35) {
+            root.setOnApplyWindowInsetsListener((view, insets) -> {
+                android.graphics.Insets bars = insets.getInsets(android.view.WindowInsets.Type.systemBars()
+                    | android.view.WindowInsets.Type.displayCutout());
+                root.setPadding(dp(18) + bars.left, dp(10) + bars.top,
+                    dp(18) + bars.right, dp(28) + bars.bottom);
+                return insets;
+            });
+        }
 
         LinearLayout toolbar = row();
         toolbar.setGravity(Gravity.END);
