@@ -25,12 +25,16 @@ public class RemoteWidgetProvider extends AppWidgetProvider {
         RemoteViews v = new RemoteViews(context.getPackageName(), R.layout.remote_widget);
         v.setTextViewText(R.id.widget_status_text, connected ? "●  Connected" : "○  Ready to connect");
         v.setTextColor(R.id.widget_status_text, connected ? 0xFF5BE67D : 0xFF9299A3);
+        v.setTextViewText(R.id.widget_track_title, context.getSharedPreferences("remote", Context.MODE_PRIVATE)
+            .getString("track_title", "Track unavailable"));
+        v.setOnClickPendingIntent(R.id.widget_shuffle, servicePi(context, RemoteService.ACTION_SHUFFLE, 10));
         v.setOnClickPendingIntent(R.id.widget_prev, servicePi(context, RemoteService.ACTION_PREV, 11));
         v.setOnClickPendingIntent(R.id.widget_play, servicePi(context, RemoteService.ACTION_PLAY_PAUSE, 12));
         v.setOnClickPendingIntent(R.id.widget_next, servicePi(context, RemoteService.ACTION_NEXT, 13));
-        v.setOnClickPendingIntent(R.id.widget_down, servicePi(context, RemoteService.ACTION_VOL_DOWN, 14));
-        v.setOnClickPendingIntent(R.id.widget_mute, servicePi(context, RemoteService.ACTION_MUTE, 15));
-        v.setOnClickPendingIntent(R.id.widget_up, servicePi(context, RemoteService.ACTION_VOL_UP, 16));
+        v.setOnClickPendingIntent(R.id.widget_repeat, servicePi(context, RemoteService.ACTION_REPEAT, 14));
+        
+        
+        
         Intent open = new Intent(context, MainActivity.class);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= 23) flags |= PendingIntent.FLAG_IMMUTABLE;

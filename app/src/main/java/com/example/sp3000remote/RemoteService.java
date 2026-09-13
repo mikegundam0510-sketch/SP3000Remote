@@ -31,6 +31,8 @@ public class RemoteService extends Service {
     public static final String ACTION_MUTE = "com.example.sp3000remote.MUTE";
     public static final String ACTION_SCREEN_TOGGLE = "com.example.sp3000remote.SCREEN_TOGGLE";
     public static final String ACTION_BACK = "com.example.sp3000remote.BACK";
+    public static final String ACTION_SHUFFLE = "com.example.sp3000remote.SHUFFLE";
+    public static final String ACTION_REPEAT = "com.example.sp3000remote.REPEAT";
 
     public static final String ACTION_STATE = "com.example.sp3000remote.STATE";
     public static final String EXTRA_ADDRESS = "address";
@@ -195,7 +197,8 @@ public class RemoteService extends Service {
     private boolean isCommand(String action) {
         return ACTION_PLAY_PAUSE.equals(action) || ACTION_NEXT.equals(action) || ACTION_PREV.equals(action)
             || ACTION_VOL_UP.equals(action) || ACTION_VOL_DOWN.equals(action) || ACTION_MUTE.equals(action)
-            || ACTION_SCREEN_TOGGLE.equals(action) || ACTION_BACK.equals(action);
+            || ACTION_SCREEN_TOGGLE.equals(action) || ACTION_BACK.equals(action)
+            || ACTION_SHUFFLE.equals(action) || ACTION_REPEAT.equals(action);
     }
 
     private void executeCommand(String action) {
@@ -207,6 +210,9 @@ public class RemoteService extends Service {
         else if (ACTION_MUTE.equals(action)) sendMedia(6);
         else if (ACTION_SCREEN_TOGGLE.equals(action)) sendConsumerUsage(0x0030);
         else if (ACTION_BACK.equals(action)) sendConsumerUsage(0x0224);
+        // Consumer Control usages used by some hosts for player shuffle/repeat.
+        else if (ACTION_SHUFFLE.equals(action)) sendConsumerUsage(0x00B9);
+        else if (ACTION_REPEAT.equals(action)) sendConsumerUsage(0x00BC);
     }
 
     private void registerHid() {
