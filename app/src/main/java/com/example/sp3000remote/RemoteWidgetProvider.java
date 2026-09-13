@@ -30,6 +30,8 @@ public class RemoteWidgetProvider extends AppWidgetProvider {
         v.setOnClickPendingIntent(R.id.widget_down, servicePi(context, RemoteService.ACTION_VOL_DOWN, 14));
         v.setOnClickPendingIntent(R.id.widget_mute, servicePi(context, RemoteService.ACTION_MUTE, 15));
         v.setOnClickPendingIntent(R.id.widget_up, servicePi(context, RemoteService.ACTION_VOL_UP, 16));
+        v.setOnClickPendingIntent(R.id.widget_screen_off, servicePi(context, RemoteService.ACTION_SCREEN_OFF, 18));
+        v.setOnClickPendingIntent(R.id.widget_screen_on, servicePi(context, RemoteService.ACTION_SCREEN_ON, 19));
         Intent open = new Intent(context, MainActivity.class);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= 23) flags |= PendingIntent.FLAG_IMMUTABLE;
