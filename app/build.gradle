@@ -30,4 +30,23 @@ tasks.register('generateDapIcons') {
         new File(m,'ic_launcher_round.xml').text = a
     }
 }
-preBuild.dependsOn generateDapIcons
+
+tasks.register('patchDapManifest') {
+    doLast {
+        def f = file('src/main/AndroidManifest.xml')
+        def s = f.getText('UTF-8')
+        if (!s.contains('android.permission.RECEIVE_BOOT_COMPLETED')) {
+            s = s.replace('    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />', '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />')
+        }
+        if (!s.contains('android:icon="@mipmap/ic_launcher"')) {
+            s = s.replace('<application android:allowBackup="true" android:label="@string/app_name" android:theme="@style/AppTheme">', '<application android:allowBackup="true" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:theme="@style/AppTheme">')
+        }
+        s = s.replace('android:icon="@android:drawable/ic_media_play"', 'android:icon="@drawable/ic_dap_notification"')
+        if (!s.contains('android:name=".AutoStartReceiver"')) {
+            s = s.replace('    </application>', '        <receiver android:name=".AutoStartReceiver" android:enabled="true" android:exported="false">\n            <intent-filter>\n                <action android:name="android.intent.action.BOOT_COMPLETED" />\n                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />\n                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />\n            </intent-filter>\n        </receiver>\n    </application>')
+        }
+        f.write(s, 'UTF-8')
+    }
+}
+
+preBuild.dependsOn generateDapIcons, patchDapManifest
