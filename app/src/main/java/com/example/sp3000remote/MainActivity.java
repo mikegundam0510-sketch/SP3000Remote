@@ -24,7 +24,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
-import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.util.ArrayList;
@@ -35,6 +35,7 @@ public class MainActivity extends Activity {
     private static final int REQ_BT = 1001;
     private static final int VOLUME_MIN = 0;
     private static final int VOLUME_MAX = 150;
+    private static final int DEFAULT_APPROX_VOLUME = 75;
     private static final int ICON_DP = 32;
 
     private BluetoothAdapter adapter;
@@ -44,7 +45,8 @@ public class MainActivity extends Activity {
     private TextView volumeValue;
     private Spinner spinner;
     private Button connect;
-    private ProgressBar volumeIndicator;
+    private SeekBar volumeIndicator;
+    private int approxVolume;
     private LinearLayout connectionCard;
 
     private final BroadcastReceiver stateReceiver = new BroadcastReceiver() {
@@ -61,6 +63,8 @@ public class MainActivity extends Activity {
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        approxVolume = clampVolume(getSharedPreferences("remote", MODE_PRIVATE)
+            .getInt("approx_volume", DEFAULT_APPROX_VOLUME));
         buildUi();
         adapter = BluetoothAdapter.getDefaultAdapter();
         if (adapter == null) {
@@ -254,21 +258,37 @@ public class MainActivity extends Activity {
         LinearLayout volumeCard = card();
         LinearLayout volumeHeader = row();
         TextView volumeTitle = txt("AK Volume", 13, Color.rgb(234, 236, 240));
-        volumeValue = txt("— / 150", 15, Color.WHITE);
+        volumeValue = txt(approxVolume + " / 150", 15, Color.WHITE);
         volumeValue.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         volumeHeader.addView(volumeTitle, new LinearLayout.LayoutParams(0, dp(28), 1f));
         volumeHeader.addView(volumeValue, new LinearLayout.LayoutParams(0, dp(28), 1f));
         volumeCard.addView(volumeHeader, match());
-        // HID consumer controls provide no DAP volume feedback. Never invent a reading.
-        // A ProgressBar has no thumb, touch listener, keyboard adjustment or volume command.
-        volumeIndicator = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        volumeIndicator.setMax(VOLUME_MAX);
-        volumeIndicator.setProgress(VOLUME_MIN);
+        LinearLayout volumeControls = row();
+        ImageButton down = roundIconButton(R.drawable.ic_minus);
+        ImageButton up = roundIconButton(R.drawable.ic_plus);
+        down.setContentDescription("Volume down one step");
+        up.setContentDescription("Volume up one step");
+        down.setOnClickListener(v -> changeVolumeOneStep(-1));
+        up.setOnClickListener(v -> changeVolumeOneStep(1));
+
+        // Display only: the bar follows +/- commands and cannot receive touch or key input.
+        volumeIndicator = new SeekBar(this);
+        volumeIndicator.setMax(VOLUME_MAX - VOLUME_MIN);
+        volumeIndicator.setProgress(approxVolume - VOLUME_MIN);
         volumeIndicator.setProgressTintList(ColorStateList.valueOf(Color.WHITE));
         volumeIndicator.setProgressBackgroundTintList(ColorStateList.valueOf(Color.rgb(54, 57, 60)));
+        volumeIndicator.setThumbTintList(ColorStateList.valueOf(Color.WHITE));
+        volumeIndicator.setEnabled(false);
+        volumeIndicator.setAlpha(1f);
+        volumeIndicator.setFocusable(false);
         volumeIndicator.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        volumeCard.addView(volumeIndicator, new LinearLayout.LayoutParams(-1, dp(16)));
-        TextView volumeHint = txt("目前連線未提供音量讀數", 11, Color.rgb(151, 157, 164));
+        volumeControls.addView(down, new LinearLayout.LayoutParams(dp(58), dp(58)));
+        LinearLayout.LayoutParams barParams = new LinearLayout.LayoutParams(0, dp(58), 1f);
+        barParams.setMargins(dp(8), 0, dp(8), 0);
+        volumeControls.addView(volumeIndicator, barParams);
+        volumeControls.addView(up, new LinearLayout.LayoutParams(dp(58), dp(58)));
+        volumeCard.addView(volumeControls, match());
+        TextView volumeHint = txt("BAR只供顯示，不可拖動", 11, Color.rgb(151, 157, 164));
         volumeHint.setGravity(Gravity.CENTER);
         volumeHint.setPadding(0, dp(5), 0, 0);
         volumeCard.addView(volumeHint, match());
@@ -313,6 +333,21 @@ public class MainActivity extends Activity {
         root.addView(connectionCard, cardParams());
 
         setContentView(scroll);
+    }
+
+    private void changeVolumeOneStep(int direction) {
+        int next = clampVolume(approxVolume + direction);
+        if (next == approxVolume) return;
+        command(direction > 0 ? RemoteService.ACTION_VOL_UP : RemoteService.ACTION_VOL_DOWN);
+        approxVolume = next;
+        volumeIndicator.setProgress(approxVolume - VOLUME_MIN);
+        volumeValue.setText(approxVolume + " / 150");
+        getSharedPreferences("remote", MODE_PRIVATE).edit()
+            .putInt("approx_volume", approxVolume).apply();
+    }
+
+    private int clampVolume(int value) {
+        return Math.max(VOLUME_MIN, Math.min(VOLUME_MAX, value));
     }
 
     private LinearLayout card() {
@@ -439,4 +474,3 @@ public class MainActivity extends Activity {
         else deviceName.setText(n.trim());
     }
 }
-
