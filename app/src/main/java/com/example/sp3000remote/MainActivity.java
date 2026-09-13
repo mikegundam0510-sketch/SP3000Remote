@@ -22,6 +22,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -35,9 +36,10 @@ import java.util.Set;
 
 public class MainActivity extends Activity {
     private static final int REQ_BT = 1001;
-    private static final int VOLUME_MIN = 1;
+    private static final int VOLUME_MIN = 0;
     private static final int VOLUME_MAX = 150;
     private static final int DEFAULT_APPROX_VOLUME = 75;
+    private static final int ICON_DP = 32;
 
     private BluetoothAdapter adapter;
     private final List<BluetoothDevice> bonded = new ArrayList<>();
@@ -58,8 +60,7 @@ public class MainActivity extends Activity {
     private final Runnable volumeStepTask = new Runnable() {
         @Override public void run() {
             if (queuedVolumeSteps <= 0 || queuedVolumeDirection == 0) return;
-            if (queuedVolumeDirection > 0) command(RemoteService.ACTION_VOL_UP);
-            else command(RemoteService.ACTION_VOL_DOWN);
+            command(queuedVolumeDirection > 0 ? RemoteService.ACTION_VOL_UP : RemoteService.ACTION_VOL_DOWN);
             setApproxVolume(approxVolume + queuedVolumeDirection, true);
             queuedVolumeSteps--;
             if (queuedVolumeSteps > 0) volumeHandler.postDelayed(this, 45);
@@ -69,14 +70,13 @@ public class MainActivity extends Activity {
 
     private final BroadcastReceiver stateReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
-            if (RemoteService.ACTION_STATE.equals(intent.getAction())) {
-                String s = intent.getStringExtra(RemoteService.EXTRA_STATE);
-                String n = intent.getStringExtra(RemoteService.EXTRA_DEVICE_NAME);
-                boolean isConnected = intent.getBooleanExtra(RemoteService.EXTRA_CONNECTED, false);
-                setStatus(s == null ? "Ready" : s, isConnected);
-                setDeviceName(n);
-                connect.setText(isConnected ? "Disconnect" : "Connect");
-            }
+            if (!RemoteService.ACTION_STATE.equals(intent.getAction())) return;
+            String s = intent.getStringExtra(RemoteService.EXTRA_STATE);
+            String n = intent.getStringExtra(RemoteService.EXTRA_DEVICE_NAME);
+            boolean isConnected = intent.getBooleanExtra(RemoteService.EXTRA_CONNECTED, false);
+            setStatus(s == null ? "Ready" : s, isConnected);
+            setDeviceName(n);
+            connect.setText(isConnected ? "Disconnect" : "Connect");
         }
     };
 
@@ -116,10 +116,7 @@ public class MainActivity extends Activity {
             if (checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) missing.add(Manifest.permission.BLUETOOTH_ADVERTISE);
         }
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) missing.add(Manifest.permission.POST_NOTIFICATIONS);
-        if (!missing.isEmpty()) {
-            requestPermissions(missing.toArray(new String[0]), REQ_BT);
-            return;
-        }
+        if (!missing.isEmpty()) { requestPermissions(missing.toArray(new String[0]), REQ_BT); return; }
         ready();
     }
 
@@ -159,14 +156,8 @@ public class MainActivity extends Activity {
     }
 
     private void toggle() {
-        if (RemoteService.isConnected()) {
-            startRemoteService(RemoteService.ACTION_DISCONNECT, null);
-            return;
-        }
-        if (bonded.isEmpty()) {
-            Toast.makeText(this, "Pair your DAP first", Toast.LENGTH_LONG).show();
-            return;
-        }
+        if (RemoteService.isConnected()) { startRemoteService(RemoteService.ACTION_DISCONNECT, null); return; }
+        if (bonded.isEmpty()) { Toast.makeText(this, "Pair your DAP first", Toast.LENGTH_LONG).show(); return; }
         int pos = Math.max(0, spinner.getSelectedItemPosition());
         BluetoothDevice d = bonded.get(Math.min(pos, bonded.size() - 1));
         setDeviceName(name(d));
@@ -205,19 +196,19 @@ public class MainActivity extends Activity {
     private void buildUi() {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
-        scroll.setBackgroundColor(Color.rgb(5, 7, 9));
+        scroll.setBackgroundColor(Color.rgb(4, 6, 8));
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.setPadding(dp(18), dp(14), dp(18), dp(28));
+        root.setPadding(dp(18), dp(10), dp(18), dp(28));
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
 
         ImageView hero = new ImageView(this);
-        hero.setImageResource(R.drawable.ic_launcher_foreground);
+        hero.setImageResource(R.drawable.ic_dap_hero);
         hero.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(dp(150), dp(195));
-        hp.setMargins(0, dp(3), 0, dp(6));
+        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(dp(145), dp(205));
+        hp.setMargins(0, dp(2), 0, dp(2));
         root.addView(hero, hp);
 
         TextView title = txt("DAP Remote", 31, Color.WHITE);
@@ -225,62 +216,63 @@ public class MainActivity extends Activity {
         title.setTypeface(null, 1);
         root.addView(title, match());
 
-        status = txt("Preparing…", 16, Color.rgb(186, 192, 201));
+        status = txt("Preparing…", 16, Color.rgb(188, 194, 203));
         status.setGravity(Gravity.CENTER);
         status.setTypeface(null, 1);
-        status.setPadding(0, dp(4), 0, dp(10));
+        status.setPadding(0, dp(5), 0, dp(10));
         root.addView(status, match());
 
-        TextView deviceLabel = txt("CONNECTED DEVICE", 10, Color.rgb(135, 144, 156));
+        TextView deviceLabel = txt("CONNECTED DEVICE", 10, Color.rgb(132, 141, 153));
         deviceLabel.setGravity(Gravity.CENTER);
         deviceLabel.setTypeface(null, 1);
         root.addView(deviceLabel, match());
 
-        deviceName = txt("—", 18, Color.rgb(225, 229, 235));
+        deviceName = txt("—", 18, Color.rgb(230, 233, 238));
         deviceName.setGravity(Gravity.CENTER);
         deviceName.setTypeface(null, 1);
-        deviceName.setPadding(0, dp(3), 0, dp(16));
+        deviceName.setPadding(0, dp(3), 0, dp(15));
         root.addView(deviceName, match());
 
         LinearLayout playbackCard = card();
         LinearLayout transport = row();
-        Button prev = circleControl("⏮", 27), play = circleControl("▶❚❚", 18), next = circleControl("⏭", 27);
+        ImageButton prev = roundIconButton(R.drawable.ic_prev);
+        ImageButton play = roundIconButton(R.drawable.ic_play_pause);
+        ImageButton next = roundIconButton(R.drawable.ic_next);
         prev.setOnClickListener(v -> command(RemoteService.ACTION_PREV));
         play.setOnClickListener(v -> command(RemoteService.ACTION_PLAY_PAUSE));
         next.setOnClickListener(v -> command(RemoteService.ACTION_NEXT));
-        addEqualRound(transport, prev, 70); addEqualRound(transport, play, 70); addEqualRound(transport, next, 70);
-        playbackCard.addView(transport, rowParams(0));
+        addCircle(transport, prev, 78);
+        addCircle(transport, play, 78);
+        addCircle(transport, next, 78);
+        playbackCard.addView(transport, match());
         root.addView(playbackCard, cardParams());
 
         LinearLayout volumeCard = card();
         LinearLayout volumeHeader = row();
-        TextView volumeTitle = txt("Volume (Approx.)", 13, Color.rgb(229, 232, 237));
+        TextView volumeTitle = txt("Volume (Approx.)", 13, Color.rgb(234, 236, 240));
         volumeTitle.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        volumeValue = txt(approxVolume + " / 150", 13, Color.rgb(229, 232, 237));
+        volumeValue = txt(approxVolume + " / 150", 13, Color.rgb(234, 236, 240));
         volumeValue.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         volumeHeader.addView(volumeTitle, new LinearLayout.LayoutParams(0, dp(28), 1f));
         volumeHeader.addView(volumeValue, new LinearLayout.LayoutParams(0, dp(28), 1f));
         volumeCard.addView(volumeHeader, match());
 
         LinearLayout vol = row();
-        Button down = circleControl("−", 30);
-        Button up = circleControl("+", 30);
+        ImageButton down = roundIconButton(R.drawable.ic_minus);
+        ImageButton up = roundIconButton(R.drawable.ic_plus);
         enableVolumeRepeat(down, -1);
         enableVolumeRepeat(up, 1);
 
         volumeSlider = new SeekBar(this);
         volumeSlider.setMax(VOLUME_MAX - VOLUME_MIN);
         volumeSlider.setProgress(approxVolume - VOLUME_MIN);
-        volumeSlider.setProgressTintList(ColorStateList.valueOf(Color.rgb(45, 124, 246)));
-        volumeSlider.setProgressBackgroundTintList(ColorStateList.valueOf(Color.rgb(59, 65, 74)));
+        volumeSlider.setProgressTintList(ColorStateList.valueOf(Color.rgb(35, 132, 255)));
+        volumeSlider.setProgressBackgroundTintList(ColorStateList.valueOf(Color.rgb(54, 60, 69)));
         volumeSlider.setThumbTintList(ColorStateList.valueOf(Color.WHITE));
         volumeSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             private int previewTarget = approxVolume;
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
-                    previewTarget = progress + VOLUME_MIN;
-                    volumeValue.setText(previewTarget + " / 150");
-                }
+                if (fromUser) { previewTarget = progress + VOLUME_MIN; volumeValue.setText(previewTarget + " / 150"); }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {
                 volumeHandler.removeCallbacks(volumeStepTask);
@@ -288,10 +280,7 @@ public class MainActivity extends Activity {
                 queuedVolumeDirection = 0;
                 previewTarget = seekBar.getProgress() + VOLUME_MIN;
             }
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {
-                int target = clampVolume(previewTarget);
-                queueVolumeTarget(target);
-            }
+            @Override public void onStopTrackingTouch(SeekBar seekBar) { queueVolumeTarget(clampVolume(previewTarget)); }
         });
 
         vol.addView(down, new LinearLayout.LayoutParams(dp(58), dp(58)));
@@ -301,24 +290,25 @@ public class MainActivity extends Activity {
         vol.addView(up, new LinearLayout.LayoutParams(dp(58), dp(58)));
         volumeCard.addView(vol, match());
 
-        TextView volumeHint = txt("Approximate 1–150 position based on commands sent by this app.", 10, Color.rgb(114, 123, 136));
+        TextView volumeHint = txt("Approximate 0–150 position based on commands sent by this app.", 10, Color.rgb(115, 124, 137));
         volumeHint.setGravity(Gravity.CENTER);
         volumeHint.setPadding(dp(4), dp(6), dp(4), 0);
         volumeCard.addView(volumeHint, match());
         root.addView(volumeCard, cardParams());
 
         LinearLayout system = row();
-        Button screen = bigSystemButton("⏻\nScreen\nOn / Off", 16);
-        Button back = bigSystemButton("↩\nBack", 18);
+        View screen = systemTile(R.drawable.ic_power, "Screen\nOn / Off");
+        View back = systemTile(R.drawable.ic_back, "Back");
         screen.setOnClickListener(v -> command(RemoteService.ACTION_SCREEN_TOGGLE));
         back.setOnClickListener(v -> command(RemoteService.ACTION_BACK));
-        addEqual(system, screen, 112);
-        addEqual(system, back, 112);
-        root.addView(system, systemRowParams());
+        addTile(system, screen);
+        addTile(system, back);
+        LinearLayout.LayoutParams sysP = match();
+        sysP.setMargins(-dp(4), 0, -dp(4), dp(12));
+        root.addView(system, sysP);
 
         LinearLayout connectionCard = card();
-        TextView connTitle = section("CONNECTION");
-        connectionCard.addView(connTitle, match());
+        connectionCard.addView(section("CONNECTION"), match());
         spinner = new Spinner(this);
         LinearLayout.LayoutParams sp = match();
         sp.setMargins(0, 0, 0, dp(9));
@@ -334,8 +324,7 @@ public class MainActivity extends Activity {
         connect = wide("Connect");
         connect.setEnabled(false);
         connect.setOnClickListener(v -> toggle());
-        LinearLayout.LayoutParams cp = match();
-        cp.height = dp(52);
+        LinearLayout.LayoutParams cp = match(); cp.height = dp(52);
         connectionCard.addView(connect, cp);
 
         TextView auto = txt("Auto Connect remains active for the last paired DAP while the background service is running.", 10, Color.rgb(112, 121, 133));
@@ -351,10 +340,7 @@ public class MainActivity extends Activity {
         target = clampVolume(target);
         volumeHandler.removeCallbacks(volumeStepTask);
         int delta = target - approxVolume;
-        if (delta == 0) {
-            setApproxVolume(target, false);
-            return;
-        }
+        if (delta == 0) { setApproxVolume(target, false); return; }
         queuedVolumeDirection = delta > 0 ? 1 : -1;
         queuedVolumeSteps = Math.abs(delta);
         volumeHandler.post(volumeStepTask);
@@ -374,32 +360,10 @@ public class MainActivity extends Activity {
         if (persist) getSharedPreferences("remote", MODE_PRIVATE).edit().putInt("approx_volume", approxVolume).apply();
     }
 
-    private int clampVolume(int value) {
-        return Math.max(VOLUME_MIN, Math.min(VOLUME_MAX, value));
-    }
+    private int clampVolume(int value) { return Math.max(VOLUME_MIN, Math.min(VOLUME_MAX, value)); }
 
-    private LinearLayout card() {
-        LinearLayout l = new LinearLayout(this);
-        l.setOrientation(LinearLayout.VERTICAL);
-        l.setPadding(dp(14), dp(13), dp(14), dp(13));
-        l.setBackground(bg(Color.rgb(20, 23, 28), 21, Color.rgb(48, 54, 62)));
-        return l;
-    }
-
-    private LinearLayout.LayoutParams cardParams() {
-        LinearLayout.LayoutParams p = match();
-        p.setMargins(0, 0, 0, dp(11));
-        return p;
-    }
-
-    private LinearLayout.LayoutParams systemRowParams() {
-        LinearLayout.LayoutParams p = match();
-        p.setMargins(-dp(4), 0, -dp(4), dp(11));
-        return p;
-    }
-
-    private void enableVolumeRepeat(Button b, int direction) {
-        b.setOnTouchListener((v, e) -> {
+    private void enableVolumeRepeat(View v, int direction) {
+        v.setOnTouchListener((view, e) -> {
             if (e.getAction() == MotionEvent.ACTION_DOWN) {
                 changeApproxVolumeOneStep(direction);
                 repeatTask = new Runnable() {
@@ -415,10 +379,19 @@ public class MainActivity extends Activity {
     }
 
     private void stopRepeat() {
-        if (repeatTask != null) {
-            repeatHandler.removeCallbacks(repeatTask);
-            repeatTask = null;
-        }
+        if (repeatTask != null) { repeatHandler.removeCallbacks(repeatTask); repeatTask = null; }
+    }
+
+    private LinearLayout card() {
+        LinearLayout l = new LinearLayout(this);
+        l.setOrientation(LinearLayout.VERTICAL);
+        l.setPadding(dp(14), dp(13), dp(14), dp(13));
+        l.setBackground(bg(Color.rgb(18, 21, 26), 21, Color.rgb(52, 59, 68)));
+        return l;
+    }
+
+    private LinearLayout.LayoutParams cardParams() {
+        LinearLayout.LayoutParams p = match(); p.setMargins(0, 0, 0, dp(12)); return p;
     }
 
     private LinearLayout row() {
@@ -428,26 +401,58 @@ public class MainActivity extends Activity {
         return l;
     }
 
+    private ImageButton roundIconButton(int res) {
+        ImageButton b = new ImageButton(this);
+        b.setImageResource(res);
+        b.setColorFilter(Color.WHITE);
+        b.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        int pad = dp((78 - ICON_DP) / 2);
+        b.setPadding(pad, pad, pad, pad);
+        b.setBackground(ovalBg(Color.rgb(31, 35, 42), Color.rgb(63, 70, 80)));
+        return b;
+    }
+
+    private View systemTile(int iconRes, String label) {
+        LinearLayout tile = new LinearLayout(this);
+        tile.setOrientation(LinearLayout.VERTICAL);
+        tile.setGravity(Gravity.CENTER);
+        tile.setPadding(dp(12), dp(18), dp(12), dp(16));
+        tile.setBackground(bg(Color.rgb(25, 29, 35), 22, Color.rgb(56, 64, 73)));
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(iconRes);
+        icon.setColorFilter(Color.WHITE);
+        tile.addView(icon, new LinearLayout.LayoutParams(dp(ICON_DP), dp(ICON_DP)));
+        TextView text = txt(label, 16, Color.WHITE);
+        text.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams tp = match(); tp.setMargins(0, dp(10), 0, 0);
+        tile.addView(text, tp);
+        return tile;
+    }
+
+    private void addCircle(LinearLayout row, View v, int size) {
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(dp(size), dp(size), 0f);
+        p.setMargins(dp(10), 0, dp(10), 0);
+        row.addView(v, p);
+    }
+
+    private void addTile(LinearLayout row, View v) {
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(128), 1f);
+        p.setMargins(dp(4), 0, dp(4), 0);
+        row.addView(v, p);
+    }
+
     private void addEqual(LinearLayout row, Button b, int h) {
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(h), 1f);
         p.setMargins(dp(4), 0, dp(4), 0);
         row.addView(b, p);
     }
 
-    private void addEqualRound(LinearLayout row, Button b, int h) {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(h), 1f);
-        p.setMargins(dp(8), 0, dp(8), 0);
-        row.addView(b, p);
-    }
-
     private LinearLayout.LayoutParams rowParams(int bottom) {
-        LinearLayout.LayoutParams p = match();
-        p.setMargins(-dp(4), 0, -dp(4), dp(bottom));
-        return p;
+        LinearLayout.LayoutParams p = match(); p.setMargins(-dp(4), 0, -dp(4), dp(bottom)); return p;
     }
 
     private TextView section(String s) {
-        TextView v = txt(s, 10, Color.rgb(118, 126, 138));
+        TextView v = txt(s, 10, Color.rgb(121, 130, 142));
         v.setTypeface(null, 1);
         v.setPadding(dp(4), 0, 0, dp(8));
         return v;
@@ -461,7 +466,7 @@ public class MainActivity extends Activity {
         return g;
     }
 
-    private GradientDrawable circleBg(int color, int stroke) {
+    private GradientDrawable ovalBg(int color, int stroke) {
         GradientDrawable g = new GradientDrawable();
         g.setShape(GradientDrawable.OVAL);
         g.setColor(color);
@@ -476,26 +481,7 @@ public class MainActivity extends Activity {
         b.setTextColor(Color.WHITE);
         b.setGravity(Gravity.CENTER);
         b.setPadding(dp(5), 0, dp(5), 0);
-        b.setBackground(bg(Color.rgb(30, 34, 40), 20, Color.rgb(52, 58, 68)));
-        return b;
-    }
-
-    private Button circleControl(String s, int z) {
-        Button b = new Button(this);
-        b.setText(s);
-        b.setAllCaps(false);
-        b.setTextColor(Color.WHITE);
-        b.setTextSize(z);
-        b.setGravity(Gravity.CENTER);
-        b.setPadding(0, 0, 0, 0);
-        b.setBackground(circleBg(Color.rgb(31, 35, 41), Color.rgb(51, 57, 66)));
-        return b;
-    }
-
-    private Button bigSystemButton(String s, int z) {
-        Button b = baseButton(s);
-        b.setTextSize(z);
-        b.setLineSpacing(0, 0.92f);
+        b.setBackground(bg(Color.rgb(30, 34, 41), 20, Color.rgb(58, 65, 75)));
         return b;
     }
 
@@ -506,12 +492,8 @@ public class MainActivity extends Activity {
     private int dp(int d) { return Math.round(d * getResources().getDisplayMetrics().density); }
 
     private void setStatus(String s, boolean isConnected) {
-        String shown;
-        if (isConnected) shown = "●  Connected";
-        else if (s != null && s.toLowerCase().contains("connect")) shown = "○  " + s.replace("Connected to ", "Connected");
-        else shown = "○  " + (s == null ? "Disconnected" : s);
-        status.setText(shown);
-        status.setTextColor(isConnected ? Color.rgb(65, 225, 118) : Color.rgb(188, 194, 204));
+        status.setText((isConnected ? "●  " : "○  ") + s);
+        status.setTextColor(isConnected ? Color.rgb(61, 222, 118) : Color.rgb(188, 194, 203));
     }
 
     private void setDeviceName(String n) {
