@@ -17,6 +17,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.widget.RemoteViews;
 import java.util.concurrent.Executor;
 
 public class RemoteService extends Service {
