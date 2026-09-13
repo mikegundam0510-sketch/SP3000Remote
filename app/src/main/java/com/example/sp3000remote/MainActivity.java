@@ -164,14 +164,16 @@ public class MainActivity extends Activity {
         connect=btn("Connect"); connect.setEnabled(false); connect.setOnClickListener(v->toggle()); root.addView(connect,match());
         controls=new LinearLayout(this); controls.setOrientation(LinearLayout.VERTICAL); controls.setVisibility(View.INVISIBLE);
         LinearLayout transport=new LinearLayout(this); Button prev=big("⏮",42), play=big("▶  ❚❚",26), next=big("⏭",42); prev.setOnClickListener(v->command(RemoteService.ACTION_PREV)); play.setOnClickListener(v->command(RemoteService.ACTION_PLAY_PAUSE)); next.setOnClickListener(v->command(RemoteService.ACTION_NEXT)); transport.addView(prev,weight()); transport.addView(play,weight()); transport.addView(next,weight()); controls.addView(transport,match());
-        LinearLayout vol=new LinearLayout(this); Button down=big("−",38), mute=big("Mute",18), up=big("+",38); down.setOnClickListener(v->command(RemoteService.ACTION_VOL_DOWN)); mute.setOnClickListener(v->command(RemoteService.ACTION_MUTE)); up.setOnClickListener(v->command(RemoteService.ACTION_VOL_UP)); vol.addView(down,weight()); vol.addView(mute,weight()); vol.addView(up,weight()); controls.addView(vol,match()); root.addView(controls,match());
-        TextView hint=txt("After connecting once, the background service remembers your SP3000. Add the SP3000 Remote widget to your Home Screen, or use the lock-screen notification controls.",13,Color.rgb(145,150,158)); hint.setGravity(Gravity.CENTER); hint.setPadding(0,dp(24),0,0); root.addView(hint,match());
+        LinearLayout vol=new LinearLayout(this); Button down=big("−",38), mute=big("Mute",18), up=big("+",38); down.setOnClickListener(v->command(RemoteService.ACTION_VOL_DOWN)); mute.setOnClickListener(v->command(RemoteService.ACTION_MUTE)); up.setOnClickListener(v->command(RemoteService.ACTION_VOL_UP)); vol.addView(down,weight()); vol.addView(mute,weight()); vol.addView(up,weight()); controls.addView(vol,match());
+        LinearLayout screen=new LinearLayout(this); Button off=big("Screen Off",17), wake=big("Wake Screen",17); off.setOnClickListener(v->command(RemoteService.ACTION_SCREEN_OFF)); wake.setOnClickListener(v->command(RemoteService.ACTION_SCREEN_ON)); screen.addView(off,weight()); screen.addView(wake,weight()); controls.addView(screen,match());
+        root.addView(controls,match());
+        TextView hint=txt("Screen Off/Wake uses standard Bluetooth HID System Sleep/Wake commands. SP3000 firmware support must be confirmed on the player.",13,Color.rgb(145,150,158)); hint.setGravity(Gravity.CENTER); hint.setPadding(0,dp(24),0,0); root.addView(hint,match());
         setContentView(root);
     }
 
     private TextView txt(String s,int z,int c){ TextView v=new TextView(this);v.setText(s);v.setTextSize(z);v.setTextColor(c);return v; }
     private Button btn(String s){ Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setBackgroundColor(Color.rgb(38,42,48));return b; }
-    private Button big(String s,int z){ Button b=btn(s);b.setTextSize(z);b.setMinHeight(dp(88));return b; }
+    private Button big(String s,int z){ Button b=btn(s);b.setTextSize(z);b.setMinHeight(dp(72));return b; }
     private LinearLayout.LayoutParams match(){return new LinearLayout.LayoutParams(-1,-2);}
     private LinearLayout.LayoutParams weight(){return new LinearLayout.LayoutParams(0,-2,1f);}
     private int dp(int d){return Math.round(d*getResources().getDisplayMetrics().density);}
