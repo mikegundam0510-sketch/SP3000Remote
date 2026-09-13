@@ -68,9 +68,9 @@ public class MainActivity extends Activity {
     }
     @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==REQ_BT)ready();}
     private void ready(){if(!adapter.isEnabled()){setStatus("Turn Bluetooth on first",false);startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));return;}refresh();connect.setEnabled(true);controls.setVisibility(View.VISIBLE);startRemoteService(RemoteService.ACTION_START,null);}
-    private void refresh(){if(!allowed())return;bonded.clear();Set<BluetoothDevice> set=adapter.getBondedDevices();if(set!=null)bonded.addAll(set);List<String> labels=new ArrayList<>();int preferred=0;for(int i=0;i<bonded.size();i++){BluetoothDevice d=bonded.get(i);String n=name(d);labels.add(n+"\n"+d.getAddress());if(n.toUpperCase().contains("SP3000"))preferred=i;}if(labels.isEmpty())labels.add("No paired devices — pair SP3000 first");spinner.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));if(!bonded.isEmpty())spinner.setSelection(preferred);}
-    private void toggle(){if(RemoteService.isConnected()){startRemoteService(RemoteService.ACTION_DISCONNECT,null);return;}if(bonded.isEmpty()){Toast.makeText(this,"Pair SP3000 first",Toast.LENGTH_LONG).show();return;}int pos=Math.max(0,spinner.getSelectedItemPosition());BluetoothDevice d=bonded.get(Math.min(pos,bonded.size()-1));startRemoteService(RemoteService.ACTION_CONNECT,d.getAddress());}
-    private void discover(){if(Build.VERSION.SDK_INT>=31&&checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.BLUETOOTH_ADVERTISE},REQ_BT);return;}Intent i=new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);i.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION,300);startActivity(i);setStatus("Phone discoverable — pair it from SP3000 Bluetooth settings",false);}
+    private void refresh(){if(!allowed())return;bonded.clear();Set<BluetoothDevice> set=adapter.getBondedDevices();if(set!=null)bonded.addAll(set);List<String> labels=new ArrayList<>();int preferred=0;for(int i=0;i<bonded.size();i++){BluetoothDevice d=bonded.get(i);String n=name(d);labels.add(n+"\n"+d.getAddress());if(n.toUpperCase().contains("SP3000"))preferred=i;}if(labels.isEmpty())labels.add("No paired devices — pair DAP first");spinner.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));if(!bonded.isEmpty())spinner.setSelection(preferred);}
+    private void toggle(){if(RemoteService.isConnected()){startRemoteService(RemoteService.ACTION_DISCONNECT,null);return;}if(bonded.isEmpty()){Toast.makeText(this,"Pair your DAP first",Toast.LENGTH_LONG).show();return;}int pos=Math.max(0,spinner.getSelectedItemPosition());BluetoothDevice d=bonded.get(Math.min(pos,bonded.size()-1));startRemoteService(RemoteService.ACTION_CONNECT,d.getAddress());}
+    private void discover(){if(Build.VERSION.SDK_INT>=31&&checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.BLUETOOTH_ADVERTISE},REQ_BT);return;}Intent i=new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);i.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION,300);startActivity(i);setStatus("Phone discoverable — pair it from your DAP Bluetooth settings",false);}
     private void command(String action){startRemoteService(action,null);}
     private void startRemoteService(String action,String address){Intent i=new Intent(this,RemoteService.class).setAction(action);if(address!=null)i.putExtra(RemoteService.EXTRA_ADDRESS,address);if(Build.VERSION.SDK_INT>=26)startForegroundService(i);else startService(i);}
     private boolean allowed(){return Build.VERSION.SDK_INT<31||checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)==PackageManager.PERMISSION_GRANTED;}
@@ -78,13 +78,13 @@ public class MainActivity extends Activity {
 
     private void buildUi(){
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(18),dp(26),dp(18),dp(22));root.setBackgroundColor(Color.rgb(10,12,16));
-        TextView title=txt("SP3000 REMOTE",28,Color.WHITE);title.setGravity(Gravity.CENTER);title.setTypeface(null,1);root.addView(title,match());
+        TextView title=txt("DAP REMOTE",28,Color.WHITE);title.setGravity(Gravity.CENTER);title.setTypeface(null,1);root.addView(title,match());
         TextView sub=txt("Bluetooth HID Controller",12,Color.rgb(132,140,153));sub.setGravity(Gravity.CENTER);sub.setPadding(0,dp(4),0,dp(14));root.addView(sub,match());
 
         status=txt("Preparing…",14,Color.WHITE);status.setGravity(Gravity.CENTER);status.setTypeface(null,1);status.setPadding(dp(12),dp(12),dp(12),dp(12));status.setBackground(bg(Color.rgb(31,35,42),16,Color.rgb(57,63,74)));LinearLayout.LayoutParams st=match();st.setMargins(0,0,0,dp(12));root.addView(status,st);
 
         spinner=new Spinner(this);LinearLayout.LayoutParams sp=match();sp.setMargins(0,0,0,dp(10));root.addView(spinner,sp);
-        LinearLayout pair=row();Button p=small("Pair SP3000"),r=small("Refresh devices");p.setOnClickListener(v->discover());r.setOnClickListener(v->refresh());addEqual(pair,p,52);addEqual(pair,r,52);root.addView(pair,rowParams(10));
+        LinearLayout pair=row();Button p=small("Pair DAP"),r=small("Refresh devices");p.setOnClickListener(v->discover());r.setOnClickListener(v->refresh());addEqual(pair,p,52);addEqual(pair,r,52);root.addView(pair,rowParams(10));
         connect=wide("Connect");connect.setEnabled(false);connect.setOnClickListener(v->toggle());LinearLayout.LayoutParams cp=match();cp.height=dp(54);cp.setMargins(0,0,0,dp(14));root.addView(connect,cp);
 
         controls=new LinearLayout(this);controls.setOrientation(LinearLayout.VERTICAL);controls.setVisibility(View.VISIBLE);
@@ -92,13 +92,10 @@ public class MainActivity extends Activity {
         LinearLayout transport=row();Button prev=control("⏮",28),play=control("▶  ❚❚",18),next=control("⏭",28);prev.setOnClickListener(v->command(RemoteService.ACTION_PREV));play.setOnClickListener(v->command(RemoteService.ACTION_PLAY_PAUSE));next.setOnClickListener(v->command(RemoteService.ACTION_NEXT));addEqual(transport,prev,64);addEqual(transport,play,64);addEqual(transport,next,64);controls.addView(transport,rowParams(12));
 
         controls.addView(section("VOLUME"),match());
-        LinearLayout vol=row();Button down=control("−",30),mute=control("Mute",15),up=control("+",30);mute.setOnClickListener(v->command(RemoteService.ACTION_MUTE));enableRepeat(down,RemoteService.ACTION_VOL_DOWN);enableRepeat(up,RemoteService.ACTION_VOL_UP);addEqual(vol,down,60);addEqual(vol,mute,60);addEqual(vol,up,60);controls.addView(vol,rowParams(12));
-
-        controls.addView(section("SCREEN"),match());
-        LinearLayout screen=row();Button off=control("Screen Off",14),wake=control("Wake Screen",14);off.setOnClickListener(v->command(RemoteService.ACTION_SCREEN_OFF));wake.setOnClickListener(v->command(RemoteService.ACTION_SCREEN_ON));addEqual(screen,off,58);addEqual(screen,wake,58);controls.addView(screen,rowParams(8));
+        LinearLayout vol=row();Button down=control("−",30),mute=control("Mute",15),up=control("+",30);mute.setOnClickListener(v->command(RemoteService.ACTION_MUTE));enableRepeat(down,RemoteService.ACTION_VOL_DOWN);enableRepeat(up,RemoteService.ACTION_VOL_UP);addEqual(vol,down,60);addEqual(vol,mute,60);addEqual(vol,up,60);controls.addView(vol,rowParams(8));
         root.addView(controls,match());
 
-        TextView hint=txt("Tap − / + = exactly 1 step. Hold for continuous volume. Screen buttons send a short HID Power key press.",12,Color.rgb(124,131,143));hint.setGravity(Gravity.CENTER);hint.setPadding(dp(6),dp(10),dp(6),0);root.addView(hint,match());setContentView(root);
+        TextView hint=txt("Tap − / + = exactly 1 step. Hold for continuous volume. Auto reconnect stays enabled in the background.",12,Color.rgb(124,131,143));hint.setGravity(Gravity.CENTER);hint.setPadding(dp(6),dp(12),dp(6),0);root.addView(hint,match());setContentView(root);
     }
 
     private void enableRepeat(Button b,String action){
