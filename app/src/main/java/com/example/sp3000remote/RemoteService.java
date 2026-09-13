@@ -17,6 +17,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.widget.RemoteViews;
 import java.util.concurrent.Executor;
 
 public class RemoteService extends Service {
@@ -31,12 +32,15 @@ public class RemoteService extends Service {
     public static final String ACTION_MUTE = "com.example.sp3000remote.MUTE";
     public static final String ACTION_SCREEN_TOGGLE = "com.example.sp3000remote.SCREEN_TOGGLE";
     public static final String ACTION_BACK = "com.example.sp3000remote.BACK";
+    public static final String ACTION_SHUFFLE = "com.example.sp3000remote.SHUFFLE";
+    public static final String ACTION_REPEAT = "com.example.sp3000remote.REPEAT";
 
     public static final String ACTION_STATE = "com.example.sp3000remote.STATE";
     public static final String EXTRA_ADDRESS = "address";
     public static final String EXTRA_STATE = "state";
     public static final String EXTRA_CONNECTED = "connected";
     public static final String EXTRA_DEVICE_NAME = "device_name";
+    public static final String EXTRA_PLAYING = "playing";
 
     private static final String CHANNEL_ID = "dap_remote";
     private static final int NOTIFICATION_ID = 3000;
@@ -111,7 +115,7 @@ public class RemoteService extends Service {
                 connected = true;
                 manualDisconnect = false;
                 handler.removeCallbacks(reconnectRunnable);
-                if (allowed()) getSharedPreferences("remote", MODE_PRIVATE).edit()
+                if ((Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)) getSharedPreferences("remote", MODE_PRIVATE).edit()
                     .putString("address", device.getAddress())
                     .putString("device_name", currentDeviceName)
                     .apply();
@@ -149,7 +153,7 @@ public class RemoteService extends Service {
         currentDeviceName = getSharedPreferences("remote", MODE_PRIVATE).getString("device_name", "");
         createChannel();
         startForeground(NOTIFICATION_ID, buildNotification());
-        if (adapter != null && allowed()) adapter.getProfileProxy(this, listener, BluetoothProfile.HID_DEVICE);
+        if (adapter != null && (Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)) adapter.getProfileProxy(this, listener, BluetoothProfile.HID_DEVICE);
     }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
@@ -168,7 +172,7 @@ public class RemoteService extends Service {
             manualDisconnect = true;
             queuedAction = null;
             handler.removeCallbacks(reconnectRunnable);
-            if (hid != null && selected != null && allowed()) hid.disconnect(selected);
+            if (hid != null && selected != null && (Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)) hid.disconnect(selected);
         } else if (isCommand(action)) {
             if (connected) executeCommand(action);
             else {
@@ -195,11 +199,20 @@ public class RemoteService extends Service {
     private boolean isCommand(String action) {
         return ACTION_PLAY_PAUSE.equals(action) || ACTION_NEXT.equals(action) || ACTION_PREV.equals(action)
             || ACTION_VOL_UP.equals(action) || ACTION_VOL_DOWN.equals(action) || ACTION_MUTE.equals(action)
-            || ACTION_SCREEN_TOGGLE.equals(action) || ACTION_BACK.equals(action);
+            || ACTION_SCREEN_TOGGLE.equals(action) || ACTION_BACK.equals(action)
+            || ACTION_SHUFFLE.equals(action) || ACTION_REPEAT.equals(action);
     }
 
     private void executeCommand(String action) {
-        if (ACTION_PLAY_PAUSE.equals(action)) sendMedia(0);
+        if (ACTION_PLAY_PAUSE.equals(action)) {
+            sendMedia(0);
+            boolean playing = getSharedPreferences("remote", MODE_PRIVATE)
+                .getBoolean("is_playing", false);
+            getSharedPreferences("remote", MODE_PRIVATE).edit()
+                .putBoolean("is_playing", !playing).apply();
+            publishState(connected ? "Connected" : "Ready", connected);
+            RemoteWidgetProvider.updateAll(this, connected);
+        }
         else if (ACTION_NEXT.equals(action)) sendMedia(1);
         else if (ACTION_PREV.equals(action)) sendMedia(2);
         else if (ACTION_VOL_UP.equals(action)) sendMedia(4);
@@ -207,10 +220,13 @@ public class RemoteService extends Service {
         else if (ACTION_MUTE.equals(action)) sendMedia(6);
         else if (ACTION_SCREEN_TOGGLE.equals(action)) sendConsumerUsage(0x0030);
         else if (ACTION_BACK.equals(action)) sendConsumerUsage(0x0224);
+        // Consumer Control usages used by some hosts for player shuffle/repeat.
+        else if (ACTION_SHUFFLE.equals(action)) sendConsumerUsage(0x00B9);
+        else if (ACTION_REPEAT.equals(action)) sendConsumerUsage(0x00BC);
     }
 
     private void registerHid() {
-        if (hid == null || !allowed()) return;
+        if (hid == null || (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)) return;
         BluetoothHidDeviceAppSdpSettings s = new BluetoothHidDeviceAppSdpSettings(
             "DAP Remote", "Bluetooth remote for DAP", "DAP Remote",
             BluetoothHidDevice.SUBCLASS1_NONE, HID_DESCRIPTOR
@@ -219,7 +235,7 @@ public class RemoteService extends Service {
     }
 
     private void connectSaved() {
-        if (connected || hid == null || adapter == null || !allowed() || !adapter.isEnabled()) return;
+        if (connected || hid == null || adapter == null || (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) || !adapter.isEnabled()) return;
         String address = pendingAddress;
         if (address == null) address = getSharedPreferences("remote", MODE_PRIVATE).getString("address", null);
         if (address != null) connectAddress(address);
@@ -227,7 +243,7 @@ public class RemoteService extends Service {
     }
 
     private void connectAddress(String address) {
-        if (!allowed() || adapter == null || hid == null || address == null || !adapter.isEnabled()) return;
+        if ((Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) || adapter == null || hid == null || address == null || !adapter.isEnabled()) return;
         try {
             selected = adapter.getRemoteDevice(address);
             pendingAddress = address;
@@ -245,10 +261,10 @@ public class RemoteService extends Service {
     }
 
     private void sendReport(int reportId, byte[] press, byte[] release) {
-        if (hid == null || selected == null || !connected || !allowed()) return;
+        if (hid == null || selected == null || !connected || (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)) return;
         hid.sendReport(selected, reportId, press);
         handler.postDelayed(() -> {
-            if (hid != null && selected != null && connected && allowed()) hid.sendReport(selected, reportId, release);
+            if (hid != null && selected != null && connected && (Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)) hid.sendReport(selected, reportId, release);
         }, 20);
     }
 
@@ -266,16 +282,28 @@ public class RemoteService extends Service {
         PendingIntent content = PendingIntent.getActivity(this, 100, open, flags);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL_ID) : new Notification.Builder(this);
         String line = connected ? (currentDeviceName.isEmpty() ? "Connected" : "Connected · " + currentDeviceName) : "Auto connect active — waiting for DAP";
+        boolean playing = getSharedPreferences("remote", MODE_PRIVATE)
+            .getBoolean("is_playing", false);
+        RemoteViews expanded = new RemoteViews(getPackageName(), R.layout.notification_expanded);
+        expanded.setTextViewText(R.id.notification_device_name,
+            currentDeviceName.isEmpty() ? "DAP device" : currentDeviceName);
+        expanded.setTextViewText(R.id.notification_connection_status,
+            connected ? "Connected" : "Disconnected");
+        expanded.setTextColor(R.id.notification_connection_status,
+            connected ? 0xFF4BE477 : 0xFF9299A3);
+        expanded.setImageViewResource(R.id.notification_play,
+            playing ? R.drawable.ic_pause : R.drawable.ic_play);
+        expanded.setOnClickPendingIntent(R.id.notification_vol_down, commandPi(ACTION_VOL_DOWN, 4));
+        expanded.setOnClickPendingIntent(R.id.notification_prev, commandPi(ACTION_PREV, 1));
+        expanded.setOnClickPendingIntent(R.id.notification_play, commandPi(ACTION_PLAY_PAUSE, 2));
+        expanded.setOnClickPendingIntent(R.id.notification_next, commandPi(ACTION_NEXT, 3));
+        expanded.setOnClickPendingIntent(R.id.notification_vol_up, commandPi(ACTION_VOL_UP, 5));
         b.setSmallIcon(R.drawable.ic_dap_notification)
          .setContentTitle("DAP Remote")
          .setContentText(line)
          .setContentIntent(content).setOngoing(true).setVisibility(Notification.VISIBILITY_PUBLIC)
          .setCategory(Notification.CATEGORY_TRANSPORT)
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Previous", commandPi(ACTION_PREV, 1)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_play, "Play/Pause", commandPi(ACTION_PLAY_PAUSE, 2)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_next, "Next", commandPi(ACTION_NEXT, 3)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_lock_idle_lock, "Screen", commandPi(ACTION_SCREEN_TOGGLE, 4)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Back", commandPi(ACTION_BACK, 5)).build());
+         .setCustomBigContentView(expanded);
         return b.build();
     }
 
@@ -301,16 +329,16 @@ public class RemoteService extends Service {
         i.putExtra(EXTRA_STATE, text);
         i.putExtra(EXTRA_CONNECTED, isConnected);
         i.putExtra(EXTRA_DEVICE_NAME, currentDeviceName);
+        i.putExtra(EXTRA_PLAYING, getSharedPreferences("remote", MODE_PRIVATE)
+            .getBoolean("is_playing", false));
         sendBroadcast(i);
         updateNotification();
     }
 
-    private boolean allowed() {
-        return Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED;
-    }
+
 
     private String name(BluetoothDevice d) {
-        if (d == null || !allowed()) return "DAP";
+        if (d == null || (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)) return "DAP";
         String n = d.getName(); return n == null || n.trim().isEmpty() ? "DAP" : n;
     }
 
@@ -319,10 +347,11 @@ public class RemoteService extends Service {
     @Override public void onDestroy() {
         connected = false;
         handler.removeCallbacks(reconnectRunnable);
-        if (hid != null && allowed()) {
+        if (hid != null && (Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)) {
             try { hid.unregisterApp(); } catch (Exception ignored) {}
             try { adapter.closeProfileProxy(BluetoothProfile.HID_DEVICE, hid); } catch (Exception ignored) {}
         }
         super.onDestroy();
     }
 }
+

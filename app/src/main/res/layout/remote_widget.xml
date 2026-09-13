@@ -2,38 +2,61 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="12dp"
-    android:background="#171A20">
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="4dp"
+    android:background="@drawable/widget_shell">
 
-    <TextView
-        android:id="@+id/widget_status"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:text="DAP Remote"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
-        android:textSize="14sp"
-        android:gravity="center"
-        android:background="#242A33" />
+    <ImageView
+        android:id="@+id/widget_device_icon"
+        android:layout_width="48dp"
+        android:layout_height="58dp"
+        android:layout_marginStart="6dp"
+        android:layout_marginEnd="2dp"
+        android:src="@drawable/ic_dap_hero"
+        android:scaleType="centerInside"
+        android:contentDescription="DAP" />
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="8dp">
-        <Button android:id="@+id/widget_prev" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:text="⏮" android:textSize="22sp" />
-        <Button android:id="@+id/widget_play" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:text="▶  ❚❚" android:textSize="16sp" />
-        <Button android:id="@+id/widget_next" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:layout_marginStart="4dp" android:text="⏭" android:textSize="22sp" />
+        android:id="@+id/widget_status"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="0.62"
+        android:orientation="vertical"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="6dp">
+        <TextView
+            android:id="@+id/widget_track_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SP3000 / SP4000"
+            android:textColor="#F2F4F6"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+        <TextView
+            android:id="@+id/widget_status_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Disconnected"
+            android:textColor="#9299A3"
+            android:textSize="10sp"
+            android:maxLines="1" />
     </LinearLayout>
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1.38"
         android:orientation="horizontal"
-        android:layout_marginTop="6dp">
-        <Button android:id="@+id/widget_down" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:text="−" android:textSize="22sp" />
-        <Button android:id="@+id/widget_mute" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:layout_marginStart="4dp" android:layout_marginEnd="4dp" android:text="Mute" />
-        <Button android:id="@+id/widget_up" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:layout_marginStart="4dp" android:text="+" android:textSize="22sp" />
+        android:gravity="center">
+        <ImageButton android:id="@+id/widget_shuffle" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp" android:minHeight="0dp" android:padding="9dp" android:background="@android:color/transparent" android:src="@drawable/ic_minus" android:contentDescription="Volume down" />
+        <ImageButton android:id="@+id/widget_prev" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp" android:minHeight="0dp" android:padding="9dp" android:background="@android:color/transparent" android:src="@drawable/ic_prev" android:contentDescription="Previous" />
+        <ImageButton android:id="@+id/widget_play" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp" android:minHeight="0dp" android:padding="9dp" android:background="@android:color/transparent" android:src="@drawable/ic_play" android:contentDescription="Play or pause" />
+        <ImageButton android:id="@+id/widget_next" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp" android:minHeight="0dp" android:padding="9dp" android:background="@android:color/transparent" android:src="@drawable/ic_next" android:contentDescription="Next" />
+        <ImageButton android:id="@+id/widget_repeat" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp" android:minHeight="0dp" android:padding="9dp" android:background="@android:color/transparent" android:src="@drawable/ic_plus" android:contentDescription="Volume up" />
     </LinearLayout>
 </LinearLayout>
+

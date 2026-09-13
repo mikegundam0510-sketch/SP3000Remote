@@ -3,6 +3,7 @@ name: Build SP3000 Remote APK
 on:
   push:
     branches: [ main ]
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -21,7 +22,11 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build debug APK
-        run: gradle assembleDebug --stacktrace
+        run: |
+          gradle assembleDebug lintDebug --stacktrace || {
+            cat app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+            exit 1
+          }
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk SP3000Remote.apk
       - name: Upload APK
@@ -30,3 +35,4 @@ jobs:
           name: SP3000Remote-APK
           path: SP3000Remote.apk
           if-no-files-found: error
+
