@@ -257,7 +257,7 @@ public class MainActivity extends Activity {
 
         LinearLayout volumeCard = card();
         LinearLayout volumeHeader = row();
-        TextView volumeTitle = txt("AK Volume", 13, Color.rgb(234, 236, 240));
+        TextView volumeTitle = txt("Volume", 13, Color.rgb(234, 236, 240));
         volumeValue = txt(approxVolume + " / 150", 15, Color.WHITE);
         volumeValue.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         volumeHeader.addView(volumeTitle, new LinearLayout.LayoutParams(0, dp(28), 1f));
@@ -288,10 +288,6 @@ public class MainActivity extends Activity {
         volumeControls.addView(volumeIndicator, barParams);
         volumeControls.addView(up, new LinearLayout.LayoutParams(dp(58), dp(58)));
         volumeCard.addView(volumeControls, match());
-        TextView volumeHint = txt("BAR只供顯示，不可拖動", 11, Color.rgb(151, 157, 164));
-        volumeHint.setGravity(Gravity.CENTER);
-        volumeHint.setPadding(0, dp(5), 0, 0);
-        volumeCard.addView(volumeHint, match());
         root.addView(volumeCard, cardParams());
 
         LinearLayout system = row();

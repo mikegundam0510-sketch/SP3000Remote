@@ -14,9 +14,6 @@ import android.bluetooth.BluetoothProfile;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -270,7 +267,6 @@ public class RemoteService extends Service {
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL_ID) : new Notification.Builder(this);
         String line = connected ? (currentDeviceName.isEmpty() ? "Connected" : "Connected · " + currentDeviceName) : "Auto connect active — waiting for DAP";
         b.setSmallIcon(R.drawable.ic_dap_notification)
-         .setLargeIcon(notificationArtwork())
          .setContentTitle("DAP Remote")
          .setContentText(line)
          .setContentIntent(content).setOngoing(true).setVisibility(Notification.VISIBILITY_PUBLIC)
@@ -281,15 +277,6 @@ public class RemoteService extends Service {
          .addAction(new Notification.Action.Builder(android.R.drawable.ic_lock_idle_lock, "Screen", commandPi(ACTION_SCREEN_TOGGLE, 4)).build())
          .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Back", commandPi(ACTION_BACK, 5)).build());
         return b.build();
-    }
-
-    private Bitmap notificationArtwork() {
-        int size = Math.round(96 * getResources().getDisplayMetrics().density);
-        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
-        Drawable artwork = getDrawable(R.drawable.ic_dap_large);
-        artwork.setBounds(0, 0, size, size);
-        artwork.draw(new Canvas(bitmap));
-        return bitmap;
     }
 
     private void updateNotification() {
@@ -337,4 +324,3 @@ public class RemoteService extends Service {
         super.onDestroy();
     }
 }
-
