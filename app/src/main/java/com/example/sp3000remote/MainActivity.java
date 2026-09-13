@@ -9,9 +9,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.ClipDrawable;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -269,8 +272,8 @@ public class MainActivity extends Activity {
 
         LinearLayout volumeCard = card();
         LinearLayout volumeHeader = row();
-        TextView volumeTitle = txt("Volume", 13, Color.rgb(234, 236, 240));
-        volumeValue = txt(approxVolume + " / 150", 15, Color.WHITE);
+        TextView volumeTitle = txt("Volume", 15, Color.rgb(234, 236, 240));
+        volumeValue = txt(approxVolume + " / 150", 16, Color.WHITE);
         volumeValue.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         volumeHeader.addView(volumeTitle, new LinearLayout.LayoutParams(0, dp(28), 1f));
         volumeHeader.addView(volumeValue, new LinearLayout.LayoutParams(0, dp(28), 1f));
@@ -290,10 +293,8 @@ public class MainActivity extends Activity {
         // Display only: the bar follows +/- commands and cannot receive touch or key input.
         volumeIndicator = new SeekBar(this);
         volumeIndicator.setMax(VOLUME_MAX - VOLUME_MIN);
+        configureVolumeIndicator(volumeIndicator);
         volumeIndicator.setProgress(approxVolume - VOLUME_MIN);
-        volumeIndicator.setProgressTintList(ColorStateList.valueOf(Color.WHITE));
-        volumeIndicator.setProgressBackgroundTintList(ColorStateList.valueOf(Color.rgb(54, 57, 60)));
-        volumeIndicator.setThumbTintList(ColorStateList.valueOf(Color.WHITE));
         volumeIndicator.setEnabled(false);
         volumeIndicator.setAlpha(1f);
         volumeIndicator.setFocusable(false);
@@ -424,24 +425,59 @@ public class MainActivity extends Activity {
         b.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         int pad = dp((78 - ICON_DP) / 2);
         b.setPadding(pad, pad, pad, pad);
-        b.setBackground(ovalBg(Color.rgb(34, 37, 39), Color.rgb(64, 67, 70)));
+        b.setBackground(ovalBg(Color.rgb(47, 52, 57), Color.rgb(73, 79, 85)));
         return b;
+    }
+
+    private void configureVolumeIndicator(SeekBar bar) {
+        GradientDrawable track = new GradientDrawable();
+        track.setShape(GradientDrawable.RECTANGLE);
+        track.setColor(Color.rgb(42, 50, 58));
+        track.setCornerRadius(dp(5));
+
+        GradientDrawable fill = new GradientDrawable(
+            GradientDrawable.Orientation.LEFT_RIGHT,
+            new int[]{Color.rgb(20, 126, 255), Color.rgb(39, 151, 255)});
+        fill.setShape(GradientDrawable.RECTANGLE);
+        fill.setCornerRadius(dp(5));
+        ClipDrawable clippedFill = new ClipDrawable(fill, Gravity.START, ClipDrawable.HORIZONTAL);
+
+        LayerDrawable progress = new LayerDrawable(new Drawable[]{track, clippedFill});
+        progress.setId(0, android.R.id.background);
+        progress.setId(1, android.R.id.progress);
+        progress.setLayerHeight(0, dp(9));
+        progress.setLayerHeight(1, dp(9));
+        progress.setLayerGravity(0, Gravity.CENTER_VERTICAL);
+        progress.setLayerGravity(1, Gravity.CENTER_VERTICAL);
+        bar.setProgressDrawable(progress);
+
+        GradientDrawable thumb = new GradientDrawable();
+        thumb.setShape(GradientDrawable.OVAL);
+        thumb.setColor(Color.WHITE);
+        thumb.setStroke(dp(1), Color.rgb(220, 223, 226));
+        thumb.setSize(dp(27), dp(27));
+        bar.setThumb(thumb);
+        bar.setThumbOffset(0);
+        bar.setSplitTrack(false);
     }
 
     private View systemTile(int iconRes, String label) {
         LinearLayout tile = new LinearLayout(this);
         tile.setContentDescription(label.replace("\n", " "));
         tile.setOrientation(LinearLayout.VERTICAL);
-        tile.setGravity(Gravity.CENTER);
-        tile.setPadding(dp(12), dp(18), dp(12), dp(16));
-        tile.setBackground(bg(Color.rgb(22, 24, 25), 22, Color.rgb(49, 52, 54)));
+        tile.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        tile.setPadding(dp(12), dp(16), dp(12), dp(10));
+        tile.setBackground(bg(Color.rgb(31, 35, 39), 22, Color.rgb(61, 67, 73)));
         ImageView icon = new ImageView(this);
         icon.setImageResource(iconRes);
         icon.setColorFilter(Color.WHITE);
-        tile.addView(icon, new LinearLayout.LayoutParams(dp(ICON_DP), dp(ICON_DP)));
-        TextView text = txt(label, 16, Color.WHITE);
+        tile.addView(icon, new LinearLayout.LayoutParams(dp(36), dp(36)));
+        TextView text = txt(label, 17, Color.WHITE);
+        text.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+        text.setIncludeFontPadding(false);
         text.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams tp = match(); tp.setMargins(0, dp(10), 0, 0);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, dp(48));
+        tp.setMargins(0, dp(8), 0, 0);
         tile.addView(text, tp);
         return tile;
     }
@@ -522,4 +558,3 @@ public class MainActivity extends Activity {
         else deviceName.setText(n.trim());
     }
 }
-
