@@ -29,6 +29,8 @@ public class RemoteService extends Service {
     public static final String ACTION_VOL_UP = "com.example.sp3000remote.VOL_UP";
     public static final String ACTION_VOL_DOWN = "com.example.sp3000remote.VOL_DOWN";
     public static final String ACTION_MUTE = "com.example.sp3000remote.MUTE";
+    public static final String ACTION_SCREEN_OFF = "com.example.sp3000remote.SCREEN_OFF";
+    public static final String ACTION_SCREEN_ON = "com.example.sp3000remote.SCREEN_ON";
     public static final String ACTION_STATE = "com.example.sp3000remote.STATE";
     public static final String EXTRA_ADDRESS = "address";
     public static final String EXTRA_STATE = "state";
@@ -36,15 +38,22 @@ public class RemoteService extends Service {
 
     private static final String CHANNEL_ID = "sp3000_remote";
     private static final int NOTIFICATION_ID = 3000;
-    private static final int REPORT_ID = 1;
+    private static final int REPORT_MEDIA = 1;
+    private static final int REPORT_SYSTEM = 2;
     private static volatile boolean connected = false;
 
     private static final byte[] HID_DESCRIPTOR = new byte[]{
-        0x05,0x0C,0x09,0x01,(byte)0xA1,0x01,(byte)0x85,REPORT_ID,
+        // Report 1: Consumer Control media keys
+        0x05,0x0C,0x09,0x01,(byte)0xA1,0x01,(byte)0x85,REPORT_MEDIA,
         0x15,0x00,0x25,0x01,0x75,0x01,(byte)0x95,0x07,
         0x09,(byte)0xCD,0x09,(byte)0xB5,0x09,(byte)0xB6,0x09,(byte)0xB7,
         0x09,(byte)0xE9,0x09,(byte)0xEA,0x09,(byte)0xE2,
-        (byte)0x81,0x02,0x75,0x01,(byte)0x95,0x01,(byte)0x81,0x03,(byte)0xC0
+        (byte)0x81,0x02,0x75,0x01,(byte)0x95,0x01,(byte)0x81,0x03,(byte)0xC0,
+        // Report 2: Generic Desktop System Control - Sleep / Wake Up
+        0x05,0x01,0x09,(byte)0x80,(byte)0xA1,0x01,(byte)0x85,REPORT_SYSTEM,
+        0x15,0x00,0x25,0x01,0x75,0x01,(byte)0x95,0x02,
+        0x09,(byte)0x82,0x09,(byte)0x83,(byte)0x81,0x02,
+        0x75,0x06,(byte)0x95,0x01,(byte)0x81,0x03,(byte)0xC0
     };
 
     private BluetoothAdapter adapter;
@@ -63,9 +72,7 @@ public class RemoteService extends Service {
                 if (address == null) address = getSharedPreferences("remote", MODE_PRIVATE).getString("address", null);
                 if (address != null) connectAddress(address);
                 else publishState("HID ready — choose SP3000 and connect", false);
-            } else {
-                publishState("HID registration stopped", false);
-            }
+            } else publishState("HID registration stopped", false);
         }
 
         @Override public void onConnectionStateChanged(BluetoothDevice device, int state) {
@@ -85,16 +92,11 @@ public class RemoteService extends Service {
 
     private final BluetoothProfile.ServiceListener listener = new BluetoothProfile.ServiceListener() {
         @Override public void onServiceConnected(int profile, BluetoothProfile proxy) {
-            if (profile == BluetoothProfile.HID_DEVICE) {
-                hid = (BluetoothHidDevice) proxy;
-                registerHid();
-            }
+            if (profile == BluetoothProfile.HID_DEVICE) { hid = (BluetoothHidDevice) proxy; registerHid(); }
         }
         @Override public void onServiceDisconnected(int profile) {
             if (profile == BluetoothProfile.HID_DEVICE) {
-                hid = null;
-                connected = false;
-                publishState("Bluetooth HID service unavailable", false);
+                hid = null; connected = false; publishState("Bluetooth HID service unavailable", false);
             }
         }
     };
@@ -115,12 +117,14 @@ public class RemoteService extends Service {
             if (hid != null && pendingAddress != null) connectAddress(pendingAddress);
         } else if (ACTION_DISCONNECT.equals(action)) {
             if (hid != null && selected != null && allowed()) hid.disconnect(selected);
-        } else if (ACTION_PLAY_PAUSE.equals(action)) send(0);
-        else if (ACTION_NEXT.equals(action)) send(1);
-        else if (ACTION_PREV.equals(action)) send(2);
-        else if (ACTION_VOL_UP.equals(action)) send(4);
-        else if (ACTION_VOL_DOWN.equals(action)) send(5);
-        else if (ACTION_MUTE.equals(action)) send(6);
+        } else if (ACTION_PLAY_PAUSE.equals(action)) sendMedia(0);
+        else if (ACTION_NEXT.equals(action)) sendMedia(1);
+        else if (ACTION_PREV.equals(action)) sendMedia(2);
+        else if (ACTION_VOL_UP.equals(action)) sendMedia(4);
+        else if (ACTION_VOL_DOWN.equals(action)) sendMedia(5);
+        else if (ACTION_MUTE.equals(action)) sendMedia(6);
+        else if (ACTION_SCREEN_OFF.equals(action)) sendSystem(0); // System Sleep
+        else if (ACTION_SCREEN_ON.equals(action)) sendSystem(1);  // System Wake Up
         updateNotification();
         return START_STICKY;
     }
@@ -128,11 +132,8 @@ public class RemoteService extends Service {
     private void registerHid() {
         if (hid == null || !allowed()) return;
         BluetoothHidDeviceAppSdpSettings s = new BluetoothHidDeviceAppSdpSettings(
-            "SP3000 Remote",
-            "Media remote for Astell&Kern SP3000",
-            "SP3000 Remote",
-            BluetoothHidDevice.SUBCLASS1_NONE,
-            HID_DESCRIPTOR
+            "SP3000 Remote", "Media remote for Astell&Kern SP3000", "SP3000 Remote",
+            BluetoothHidDevice.SUBCLASS1_NONE, HID_DESCRIPTOR
         );
         hid.registerApp(s, null, null, executor, callback);
     }
@@ -144,19 +145,18 @@ public class RemoteService extends Service {
             pendingAddress = address;
             publishState("Connecting to " + name(selected) + "…", false);
             hid.connect(selected);
-        } catch (Exception e) {
-            publishState("Could not connect to saved SP3000", false);
-        }
+        } catch (Exception e) { publishState("Could not connect to saved SP3000", false); }
     }
 
-    private void send(int bit) {
+    private void sendMedia(int bit) { sendReport(REPORT_MEDIA, (byte)(1 << bit)); }
+    private void sendSystem(int bit) { sendReport(REPORT_SYSTEM, (byte)(1 << bit)); }
+
+    private void sendReport(int reportId, byte value) {
         if (hid == null || selected == null || !connected || !allowed()) return;
-        hid.sendReport(selected, REPORT_ID, new byte[]{(byte)(1 << bit)});
+        hid.sendReport(selected, reportId, new byte[]{value});
         handler.postDelayed(() -> {
-            if (hid != null && selected != null && connected && allowed()) {
-                hid.sendReport(selected, REPORT_ID, new byte[]{0});
-            }
-        }, 30);
+            if (hid != null && selected != null && connected && allowed()) hid.sendReport(selected, reportId, new byte[]{0});
+        }, 40);
     }
 
     private PendingIntent commandPi(String action, int requestCode) {
@@ -171,18 +171,17 @@ public class RemoteService extends Service {
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= 23) flags |= PendingIntent.FLAG_IMMUTABLE;
         PendingIntent content = PendingIntent.getActivity(this, 100, open, flags);
-
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL_ID) : new Notification.Builder(this);
         b.setSmallIcon(android.R.drawable.ic_media_play)
          .setContentTitle("SP3000 Remote")
          .setContentText(connected ? "Connected — lock screen remote ready" : "Remote running — open app to connect")
-         .setContentIntent(content)
-         .setOngoing(true)
-         .setVisibility(Notification.VISIBILITY_PUBLIC)
+         .setContentIntent(content).setOngoing(true).setVisibility(Notification.VISIBILITY_PUBLIC)
          .setCategory(Notification.CATEGORY_TRANSPORT)
          .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Previous", commandPi(ACTION_PREV, 1)).build())
          .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_play, "Play/Pause", commandPi(ACTION_PLAY_PAUSE, 2)).build())
-         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_next, "Next", commandPi(ACTION_NEXT, 3)).build());
+         .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_next, "Next", commandPi(ACTION_NEXT, 3)).build())
+         .addAction(new Notification.Action.Builder(android.R.drawable.ic_lock_idle_lock, "Screen Off", commandPi(ACTION_SCREEN_OFF, 4)).build())
+         .addAction(new Notification.Action.Builder(android.R.drawable.ic_menu_view, "Wake", commandPi(ACTION_SCREEN_ON, 5)).build());
         return b.build();
     }
 
@@ -205,10 +204,7 @@ public class RemoteService extends Service {
     private void publishState(String text, boolean isConnected) {
         connected = isConnected;
         Intent i = new Intent(ACTION_STATE).setPackage(getPackageName());
-        i.putExtra(EXTRA_STATE, text);
-        i.putExtra(EXTRA_CONNECTED, isConnected);
-        sendBroadcast(i);
-        updateNotification();
+        i.putExtra(EXTRA_STATE, text); i.putExtra(EXTRA_CONNECTED, isConnected); sendBroadcast(i); updateNotification();
     }
 
     private boolean allowed() {
@@ -217,8 +213,7 @@ public class RemoteService extends Service {
 
     private String name(BluetoothDevice d) {
         if (d == null || !allowed()) return "SP3000";
-        String n = d.getName();
-        return n == null || n.trim().isEmpty() ? "SP3000" : n;
+        String n = d.getName(); return n == null || n.trim().isEmpty() ? "SP3000" : n;
     }
 
     @Override public IBinder onBind(Intent intent) { return null; }
