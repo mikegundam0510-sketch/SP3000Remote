@@ -92,22 +92,24 @@ public class MainActivity extends Activity {
         LinearLayout transport=row();Button prev=control("⏮",28),play=control("▶  ❚❚",18),next=control("⏭",28);prev.setOnClickListener(v->command(RemoteService.ACTION_PREV));play.setOnClickListener(v->command(RemoteService.ACTION_PLAY_PAUSE));next.setOnClickListener(v->command(RemoteService.ACTION_NEXT));addEqual(transport,prev,64);addEqual(transport,play,64);addEqual(transport,next,64);controls.addView(transport,rowParams(12));
 
         controls.addView(section("VOLUME"),match());
-        LinearLayout vol=row();Button down=control("−",30),mute=control("Mute",15),up=control("+",30);down.setOnClickListener(v->command(RemoteService.ACTION_VOL_DOWN));mute.setOnClickListener(v->command(RemoteService.ACTION_MUTE));up.setOnClickListener(v->command(RemoteService.ACTION_VOL_UP));enableRepeat(down,RemoteService.ACTION_VOL_DOWN);enableRepeat(up,RemoteService.ACTION_VOL_UP);addEqual(vol,down,60);addEqual(vol,mute,60);addEqual(vol,up,60);controls.addView(vol,rowParams(12));
+        LinearLayout vol=row();Button down=control("−",30),mute=control("Mute",15),up=control("+",30);mute.setOnClickListener(v->command(RemoteService.ACTION_MUTE));enableRepeat(down,RemoteService.ACTION_VOL_DOWN);enableRepeat(up,RemoteService.ACTION_VOL_UP);addEqual(vol,down,60);addEqual(vol,mute,60);addEqual(vol,up,60);controls.addView(vol,rowParams(12));
 
         controls.addView(section("SCREEN"),match());
         LinearLayout screen=row();Button off=control("Screen Off",14),wake=control("Wake Screen",14);off.setOnClickListener(v->command(RemoteService.ACTION_SCREEN_OFF));wake.setOnClickListener(v->command(RemoteService.ACTION_SCREEN_ON));addEqual(screen,off,58);addEqual(screen,wake,58);controls.addView(screen,rowParams(8));
         root.addView(controls,match());
 
-        TextView hint=txt("Tip: hold − / + for continuous volume. Widget and lock-screen controls auto reconnect when needed.",12,Color.rgb(124,131,143));hint.setGravity(Gravity.CENTER);hint.setPadding(dp(6),dp(10),dp(6),0);root.addView(hint,match());setContentView(root);
+        TextView hint=txt("Tap − / + = exactly 1 step. Hold for continuous volume. Screen buttons send a short HID Power key press.",12,Color.rgb(124,131,143));hint.setGravity(Gravity.CENTER);hint.setPadding(dp(6),dp(10),dp(6),0);root.addView(hint,match());setContentView(root);
     }
 
     private void enableRepeat(Button b,String action){
         b.setOnTouchListener((v,e)->{
             if(e.getAction()==MotionEvent.ACTION_DOWN){
                 command(action);
-                repeatTask=new Runnable(){@Override public void run(){command(action);repeatHandler.postDelayed(this,140);}};
-                repeatHandler.postDelayed(repeatTask,420);
-            }else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){stopRepeat();v.performClick();}
+                repeatTask=new Runnable(){@Override public void run(){command(action);repeatHandler.postDelayed(this,170);}};
+                repeatHandler.postDelayed(repeatTask,450);
+            }else if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){
+                stopRepeat();
+            }
             return true;
         });
     }
