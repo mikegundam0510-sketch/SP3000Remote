@@ -114,7 +114,7 @@ public class RemoteService extends Service {
                 connected = true;
                 manualDisconnect = false;
                 handler.removeCallbacks(reconnectRunnable);
-                if (allowed()) getSharedPreferences("remote", MODE_PRIVATE).edit()
+                if ((Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)) getSharedPreferences("remote", MODE_PRIVATE).edit()
                     .putString("address", device.getAddress())
                     .putString("device_name", currentDeviceName)
                     .apply();
@@ -152,7 +152,7 @@ public class RemoteService extends Service {
         currentDeviceName = getSharedPreferences("remote", MODE_PRIVATE).getString("device_name", "");
         createChannel();
         startForeground(NOTIFICATION_ID, buildNotification());
-        if (adapter != null && allowed()) adapter.getProfileProxy(this, listener, BluetoothProfile.HID_DEVICE);
+        if (adapter != null && (Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)) adapter.getProfileProxy(this, listener, BluetoothProfile.HID_DEVICE);
     }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
@@ -171,7 +171,7 @@ public class RemoteService extends Service {
             manualDisconnect = true;
             queuedAction = null;
             handler.removeCallbacks(reconnectRunnable);
-            if (hid != null && selected != null && allowed()) hid.disconnect(selected);
+            if (hid != null && selected != null && (Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)) hid.disconnect(selected);
         } else if (isCommand(action)) {
             if (connected) executeCommand(action);
             else {
@@ -213,7 +213,7 @@ public class RemoteService extends Service {
     }
 
     private void registerHid() {
-        if (hid == null || !allowed()) return;
+        if (hid == null || (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)) return;
         BluetoothHidDeviceAppSdpSettings s = new BluetoothHidDeviceAppSdpSettings(
             "DAP Remote", "Bluetooth remote for DAP", "DAP Remote",
             BluetoothHidDevice.SUBCLASS1_NONE, HID_DESCRIPTOR
@@ -222,7 +222,7 @@ public class RemoteService extends Service {
     }
 
     private void connectSaved() {
-        if (connected || hid == null || adapter == null || !allowed() || !adapter.isEnabled()) return;
+        if (connected || hid == null || adapter == null || (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) || !adapter.isEnabled()) return;
         String address = pendingAddress;
         if (address == null) address = getSharedPreferences("remote", MODE_PRIVATE).getString("address", null);
         if (address != null) connectAddress(address);
@@ -230,7 +230,7 @@ public class RemoteService extends Service {
     }
 
     private void connectAddress(String address) {
-        if (!allowed() || adapter == null || hid == null || address == null || !adapter.isEnabled()) return;
+        if ((Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) || adapter == null || hid == null || address == null || !adapter.isEnabled()) return;
         try {
             selected = adapter.getRemoteDevice(address);
             pendingAddress = address;
@@ -248,10 +248,10 @@ public class RemoteService extends Service {
     }
 
     private void sendReport(int reportId, byte[] press, byte[] release) {
-        if (hid == null || selected == null || !connected || !allowed()) return;
+        if (hid == null || selected == null || !connected || (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)) return;
         hid.sendReport(selected, reportId, press);
         handler.postDelayed(() -> {
-            if (hid != null && selected != null && connected && allowed()) hid.sendReport(selected, reportId, release);
+            if (hid != null && selected != null && connected && (Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)) hid.sendReport(selected, reportId, release);
         }, 20);
     }
 
@@ -318,12 +318,10 @@ public class RemoteService extends Service {
         updateNotification();
     }
 
-    private boolean allowed() {
-        return Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED;
-    }
+
 
     private String name(BluetoothDevice d) {
-        if (d == null || !allowed()) return "DAP";
+        if (d == null || (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)) return "DAP";
         String n = d.getName(); return n == null || n.trim().isEmpty() ? "DAP" : n;
     }
 
@@ -332,7 +330,7 @@ public class RemoteService extends Service {
     @Override public void onDestroy() {
         connected = false;
         handler.removeCallbacks(reconnectRunnable);
-        if (hid != null && allowed()) {
+        if (hid != null && (Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)) {
             try { hid.unregisterApp(); } catch (Exception ignored) {}
             try { adapter.closeProfileProxy(BluetoothProfile.HID_DEVICE, hid); } catch (Exception ignored) {}
         }

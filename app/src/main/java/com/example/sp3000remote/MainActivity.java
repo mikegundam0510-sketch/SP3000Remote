@@ -100,6 +100,11 @@ public class MainActivity extends Activity {
     }
 
     private void ready() {
+        if (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            setStatus("Bluetooth permission required", false);
+            connect.setEnabled(false);
+            return;
+        }
         if (!adapter.isEnabled()) {
             setStatus("Turn Bluetooth on", false);
             startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));
@@ -111,7 +116,7 @@ public class MainActivity extends Activity {
     }
 
     private void refresh() {
-        if (!allowed()) return;
+        if ((Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)) return;
         bonded.clear();
         Set<BluetoothDevice> set = adapter.getBondedDevices();
         if (set != null) bonded.addAll(set);
@@ -157,12 +162,10 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
     }
 
-    private boolean allowed() {
-        return Build.VERSION.SDK_INT < 31 || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED;
-    }
+
 
     private String name(BluetoothDevice d) {
-        if (!allowed()) return "Bluetooth device";
+        if ((Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)) return "Bluetooth device";
         String n = d.getName();
         return n == null || n.trim().isEmpty() ? "Bluetooth device" : n;
     }

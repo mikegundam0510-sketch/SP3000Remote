@@ -22,7 +22,11 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build debug APK
-        run: gradle assembleDebug lintDebug --stacktrace
+        run: |
+          gradle assembleDebug lintDebug --stacktrace || {
+            cat app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+            exit 1
+          }
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk SP3000Remote.apk
       - name: Upload APK
