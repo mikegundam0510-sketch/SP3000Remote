@@ -23,7 +23,8 @@ public class RemoteWidgetProvider extends AppWidgetProvider {
 
     private static RemoteViews buildViews(Context context, boolean connected) {
         RemoteViews v = new RemoteViews(context.getPackageName(), R.layout.remote_widget);
-        v.setTextViewText(R.id.widget_status, connected ? "DAP Connected" : "DAP Remote");
+        v.setTextViewText(R.id.widget_status_text, connected ? "●  Connected" : "○  Ready to connect");
+        v.setTextColor(R.id.widget_status_text, connected ? 0xFF5BE67D : 0xFF9299A3);
         v.setOnClickPendingIntent(R.id.widget_prev, servicePi(context, RemoteService.ACTION_PREV, 11));
         v.setOnClickPendingIntent(R.id.widget_play, servicePi(context, RemoteService.ACTION_PLAY_PAUSE, 12));
         v.setOnClickPendingIntent(R.id.widget_next, servicePi(context, RemoteService.ACTION_NEXT, 13));
