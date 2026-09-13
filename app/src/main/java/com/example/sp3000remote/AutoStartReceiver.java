@@ -26,3 +26,4 @@ public class AutoStartReceiver extends BroadcastReceiver {
         else context.startService(service);
     }
 }
+

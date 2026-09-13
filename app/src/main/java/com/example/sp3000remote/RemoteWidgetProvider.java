@@ -44,3 +44,4 @@ public class RemoteWidgetProvider extends AppWidgetProvider {
         return PendingIntent.getForegroundService(c, code, i, flags);
     }
 }
+
