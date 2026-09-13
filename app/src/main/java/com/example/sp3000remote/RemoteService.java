@@ -283,15 +283,18 @@ public class RemoteService extends Service {
         String line = connected ? (currentDeviceName.isEmpty() ? "Connected" : "Connected · " + currentDeviceName) : "Auto connect active — waiting for DAP";
         boolean playing = getSharedPreferences("remote", MODE_PRIVATE)
             .getBoolean("is_playing", false);
+        RemoteViews expanded = new RemoteViews(getPackageName(), R.layout.notification_expanded);
+        expanded.setImageViewResource(R.id.notification_play,
+            playing ? R.drawable.ic_pause : R.drawable.ic_play);
+        expanded.setOnClickPendingIntent(R.id.notification_prev, commandPi(ACTION_PREV, 1));
+        expanded.setOnClickPendingIntent(R.id.notification_play, commandPi(ACTION_PLAY_PAUSE, 2));
+        expanded.setOnClickPendingIntent(R.id.notification_next, commandPi(ACTION_NEXT, 3));
         b.setSmallIcon(R.drawable.ic_dap_notification)
          .setContentTitle("DAP Remote")
          .setContentText(line)
          .setContentIntent(content).setOngoing(true).setVisibility(Notification.VISIBILITY_PUBLIC)
          .setCategory(Notification.CATEGORY_TRANSPORT)
-         .setStyle(new Notification.MediaStyle().setShowActionsInCompactView(0, 1, 2))
-         .addAction(new Notification.Action.Builder(R.drawable.ic_prev, "", commandPi(ACTION_PREV, 1)).build())
-         .addAction(new Notification.Action.Builder(playing ? R.drawable.ic_pause : R.drawable.ic_play, "", commandPi(ACTION_PLAY_PAUSE, 2)).build())
-         .addAction(new Notification.Action.Builder(R.drawable.ic_next, "", commandPi(ACTION_NEXT, 3)).build());
+         .setCustomBigContentView(expanded);
         return b.build();
     }
 
@@ -342,3 +345,4 @@ public class RemoteService extends Service {
         super.onDestroy();
     }
 }
+
