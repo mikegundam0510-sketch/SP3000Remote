@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
-    <application android:allowBackup="true" android:label="SP3000 Remote" android:theme="@style/AppTheme">
+    <application android:allowBackup="true" android:label="@string/app_name" android:theme="@style/AppTheme">
         <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -24,7 +24,7 @@
 
         <service
             android:name=".PlayPauseTileService"
-            android:label="SP3000 Play/Pause"
+            android:label="DAP Play/Pause"
             android:icon="@android:drawable/ic_media_play"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:exported="true">
