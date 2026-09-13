@@ -43,9 +43,10 @@ public class RemoteService extends Service {
     private static final int REPORT_SYSTEM = 2;
     private static final int REPORT_KEYBOARD = 3;
     private static final int REPORT_CONSUMER_EXT = 4;
+    private static final long AUTO_CONNECT_INTERVAL_MS = 5000L;
     private static volatile boolean connected = false;
 
-    // Keep the beta descriptor layout unchanged so existing SP3000 pairing remains compatible.
+    // Keep the proven BR01-compatible descriptor layout unchanged.
     private static final byte[] HID_DESCRIPTOR = new byte[]{
         0x05,0x0C,0x09,0x01,(byte)0xA1,0x01,(byte)0x85,REPORT_MEDIA,
         0x15,0x00,0x25,0x01,0x75,0x01,(byte)0x95,0x07,
@@ -78,8 +79,14 @@ public class RemoteService extends Service {
     private boolean manualDisconnect = false;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Executor executor = Runnable::run;
-    private final Runnable reconnectRunnable = () -> {
-        if (!connected && !manualDisconnect) connectSaved();
+
+    private final Runnable reconnectRunnable = new Runnable() {
+        @Override public void run() {
+            if (!connected && !manualDisconnect) {
+                connectSaved();
+                handler.postDelayed(this, AUTO_CONNECT_INTERVAL_MS);
+            }
+        }
     };
 
     public static boolean isConnected() { return connected; }
@@ -89,8 +96,10 @@ public class RemoteService extends Service {
             if (registered) {
                 String address = pendingAddress;
                 if (address == null) address = getSharedPreferences("remote", MODE_PRIVATE).getString("address", null);
-                if (address != null) connectAddress(address);
-                else publishState("Ready — choose DAP and connect", false);
+                if (address != null) {
+                    connectAddress(address);
+                    startAutoConnectLoop();
+                } else publishState("Ready — choose DAP and connect", false);
             } else publishState("Bluetooth remote unavailable", false);
         }
 
@@ -111,11 +120,8 @@ public class RemoteService extends Service {
                 publishState("Connecting to " + name(device) + "…", false);
             } else if (state == BluetoothProfile.STATE_DISCONNECTED) {
                 connected = false;
-                publishState(manualDisconnect ? "Disconnected" : "Disconnected — reconnecting…", false);
-                if (!manualDisconnect) {
-                    handler.removeCallbacks(reconnectRunnable);
-                    handler.postDelayed(reconnectRunnable, 2500);
-                }
+                publishState(manualDisconnect ? "Disconnected" : "Disconnected — auto connect active", false);
+                if (!manualDisconnect) startAutoConnectLoop();
             }
         }
     };
@@ -140,12 +146,17 @@ public class RemoteService extends Service {
     }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent == null) return START_STICKY;
+        if (intent == null) {
+            manualDisconnect = false;
+            startAutoConnectLoop();
+            return START_STICKY;
+        }
         String action = intent.getAction();
         if (ACTION_CONNECT.equals(action)) {
             manualDisconnect = false;
             pendingAddress = intent.getStringExtra(EXTRA_ADDRESS);
             if (hid != null && pendingAddress != null) connectAddress(pendingAddress);
+            startAutoConnectLoop();
         } else if (ACTION_DISCONNECT.equals(action)) {
             manualDisconnect = true;
             queuedAction = null;
@@ -158,10 +169,20 @@ public class RemoteService extends Service {
                 manualDisconnect = false;
                 publishState("Reconnecting to send command…", false);
                 connectSaved();
+                startAutoConnectLoop();
             }
+        } else {
+            manualDisconnect = false;
+            startAutoConnectLoop();
         }
         updateNotification();
         return START_STICKY;
+    }
+
+    private void startAutoConnectLoop() {
+        if (manualDisconnect || connected) return;
+        handler.removeCallbacks(reconnectRunnable);
+        handler.postDelayed(reconnectRunnable, 1200);
     }
 
     private boolean isCommand(String action) {
@@ -191,7 +212,7 @@ public class RemoteService extends Service {
     }
 
     private void connectSaved() {
-        if (connected || hid == null || adapter == null || !allowed()) return;
+        if (connected || hid == null || adapter == null || !allowed() || !adapter.isEnabled()) return;
         String address = pendingAddress;
         if (address == null) address = getSharedPreferences("remote", MODE_PRIVATE).getString("address", null);
         if (address != null) connectAddress(address);
@@ -199,13 +220,13 @@ public class RemoteService extends Service {
     }
 
     private void connectAddress(String address) {
-        if (!allowed() || adapter == null || hid == null || address == null) return;
+        if (!allowed() || adapter == null || hid == null || address == null || !adapter.isEnabled()) return;
         try {
             selected = adapter.getRemoteDevice(address);
             pendingAddress = address;
             publishState("Connecting to " + name(selected) + "…", false);
             hid.connect(selected);
-        } catch (Exception e) { publishState("Could not connect to saved DAP", false); }
+        } catch (Exception e) { publishState("Waiting for saved DAP…", false); }
     }
 
     private void sendMedia(int bit) { sendReport(REPORT_MEDIA, new byte[]{(byte)(1 << bit)}, new byte[]{0}); }
@@ -236,9 +257,9 @@ public class RemoteService extends Service {
         if (Build.VERSION.SDK_INT >= 23) flags |= PendingIntent.FLAG_IMMUTABLE;
         PendingIntent content = PendingIntent.getActivity(this, 100, open, flags);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL_ID) : new Notification.Builder(this);
-        b.setSmallIcon(android.R.drawable.ic_media_play)
+        b.setSmallIcon(R.drawable.ic_dap_notification)
          .setContentTitle("DAP Remote")
-         .setContentText(connected ? "Connected" : "Remote active — auto reconnect enabled")
+         .setContentText(connected ? "Connected" : "Auto connect active — waiting for DAP")
          .setContentIntent(content).setOngoing(true).setVisibility(Notification.VISIBILITY_PUBLIC)
          .setCategory(Notification.CATEGORY_TRANSPORT)
          .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Previous", commandPi(ACTION_PREV, 1)).build())
@@ -258,7 +279,7 @@ public class RemoteService extends Service {
     private void createChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel c = new NotificationChannel(CHANNEL_ID, "DAP Remote", NotificationManager.IMPORTANCE_LOW);
-            c.setDescription("DAP lock-screen remote controls");
+            c.setDescription("DAP lock-screen remote controls and auto connect");
             c.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             if (nm != null) nm.createNotificationChannel(c);
