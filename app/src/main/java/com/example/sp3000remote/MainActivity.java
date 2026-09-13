@@ -71,6 +71,8 @@ public class MainActivity extends Activity {
         ensurePermissions();
     }
 
+    // Android 13+ uses the non-exported flag; older Android uses the legacy overload.
+    @android.annotation.SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override protected void onStart() {
         super.onStart();
         IntentFilter f = new IntentFilter(RemoteService.ACTION_STATE);
@@ -216,18 +218,18 @@ public class MainActivity extends Activity {
 
         TextView title = txt("DAP Remote", 31, Color.WHITE);
         title.setGravity(Gravity.CENTER);
-        title.setTypeface(null, 1);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
         root.addView(title, match());
 
         status = txt("Preparing…", 16, Color.rgb(188, 194, 203));
         status.setGravity(Gravity.CENTER);
-        status.setTypeface(null, 1);
+        status.setTypeface(null, android.graphics.Typeface.BOLD);
         status.setPadding(0, dp(5), 0, dp(10));
         root.addView(status, match());
 
         deviceName = txt("SP3000 / SP4000", 15, Color.rgb(188, 194, 203));
         deviceName.setGravity(Gravity.CENTER);
-        deviceName.setTypeface(null, 1);
+        deviceName.setTypeface(null, android.graphics.Typeface.BOLD);
         deviceName.setPadding(0, dp(3), 0, dp(15));
         root.addView(deviceName, match());
 
@@ -387,7 +389,7 @@ public class MainActivity extends Activity {
 
     private TextView section(String s) {
         TextView v = txt(s, 10, Color.rgb(121, 130, 142));
-        v.setTypeface(null, 1);
+        v.setTypeface(null, android.graphics.Typeface.BOLD);
         v.setPadding(dp(4), 0, 0, dp(8));
         return v;
     }
