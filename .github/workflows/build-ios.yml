@@ -1,0 +1,63 @@
+name: Build iPhone Remote
+
+on:
+  push:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/build-ios.yml'
+  pull_request:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/build-ios.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Xcode version
+        run: xcodebuild -version
+      - name: Test HID encoding and notification queue
+        run: swift test --package-path ios
+      - name: Build unsigned iPhone app
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ios/SP3000Remote.xcodeproj \
+            -scheme SP3000Remote \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/ios-build" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' \
+            build
+      - name: Package unsigned IPA for sideload signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/ios-build/Build/Products/Release-iphoneos/SP3000Remote.app"
+          test -x "$app/SP3000Remote"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist"
+          mkdir -p "$RUNNER_TEMP/ios-package/Payload"
+          ditto "$app" "$RUNNER_TEMP/ios-package/Payload/SP3000Remote.app"
+          cd "$RUNNER_TEMP/ios-package"
+          /usr/bin/zip -qr SP3000Remote-unsigned.ipa Payload
+          shasum -a 256 SP3000Remote-unsigned.ipa > SP3000Remote-unsigned.ipa.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SP3000Remote-iPhone-unsigned
+          path: |
+            ${{ runner.temp }}/ios-package/SP3000Remote-unsigned.ipa
+            ${{ runner.temp }}/ios-package/SP3000Remote-unsigned.ipa.sha256
+          if-no-files-found: error
+          retention-days: 14
