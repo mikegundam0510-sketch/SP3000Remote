@@ -75,26 +75,26 @@ final class BluetoothRemote: NSObject, ObservableObject, CBPeripheralManagerDele
         central = nil
         values.removeAll()
         outbox.reset()
-        let service = CBMutableService(type: CBUUID(string: "1812"), primary: true)
+        let service = CBMutableService(type: gattUUID(0x1812), primary: true)
         let information = CBMutableCharacteristic(
-            type: CBUUID(string: "2A4A"), properties: [.read],
+            type: gattUUID(0x2A4A), properties: [.read],
             value: Data([0x11, 0x01, 0, 0x02]), permissions: [.readable])
         let map = CBMutableCharacteristic(
-            type: CBUUID(string: "2A4B"), properties: [.read],
+            type: gattUUID(0x2A4B), properties: [.read],
             value: Data(HIDProfile.reportMap), permissions: [.readable])
         let control = CBMutableCharacteristic(
-            type: CBUUID(string: "2A4C"), properties: [.writeWithoutResponse],
+            type: gattUUID(0x2A4C), properties: [.writeWithoutResponse],
             value: nil, permissions: [.writeable, .writeEncryptionRequired])
         let mode = CBMutableCharacteristic(
-            type: CBUUID(string: "2A4E"), properties: [.read, .writeWithoutResponse],
+            type: gattUUID(0x2A4E), properties: [.read, .writeWithoutResponse],
             value: nil, permissions: [.readable, .writeable, .writeEncryptionRequired])
         for id in [HIDProfile.mediaReportID, HIDProfile.extendedReportID] {
             let report = CBMutableCharacteristic(
-                type: CBUUID(string: "2A4D"),
+                type: gattUUID(0x2A4D),
                 properties: [.read, .notify, .notifyEncryptionRequired], value: nil,
                 permissions: [.readable, .readEncryptionRequired])
             report.descriptors = [CBMutableDescriptor(
-                type: CBUUID(string: "2908"), value: Data([id, 1]) as NSData)]
+                type: gattUUID(0x2908), value: Data([id, 1]) as NSData)]
             reports[id] = report
             values[id] = Data(HIDProfile.neutral(id)!.bytes)
         }
@@ -131,13 +131,18 @@ final class BluetoothRemote: NSObject, ObservableObject, CBPeripheralManagerDele
     func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?) {
         guard peripheral === manager, !stopping, !backgrounded else { return }
         if let error {
-            fail("未能啟動藍牙遙控服務", detail: describe(error))
+            let nsError = error as NSError
+            let message = nsError.domain == "CBErrorDomain" && nsError.code == 8
+                ? "iPhone 拒絕遙控服務 UUID" : "未能啟動藍牙遙控服務"
+            fail(message, detail: describe(error)
+                 + "\nHID service: \(gattUUID(0x1812).uuidString)"
+                 + "\nUUID bytes: \(gattUUID(0x1812).data.count)")
             return
         }
         serviceReady = true
         peripheral.startAdvertising([
             CBAdvertisementDataLocalNameKey: HIDProfile.name,
-            CBAdvertisementDataServiceUUIDsKey: [CBUUID(string: "1812")]
+            CBAdvertisementDataServiceUUIDsKey: [gattUUID(0x1812)]
         ])
     }
 
@@ -175,7 +180,7 @@ final class BluetoothRemote: NSObject, ObservableObject, CBPeripheralManagerDele
                 status = "連線已中斷，等待重新配對"
                 peripheral.startAdvertising([
                     CBAdvertisementDataLocalNameKey: HIDProfile.name,
-                    CBAdvertisementDataServiceUUIDsKey: [CBUUID(string: "1812")]
+                    CBAdvertisementDataServiceUUIDsKey: [gattUUID(0x1812)]
                 ])
             }
         } else {
@@ -192,7 +197,7 @@ final class BluetoothRemote: NSObject, ObservableObject, CBPeripheralManagerDele
         }
         let data: Data
         if let id = reportID(request.characteristic), let value = values[id] { data = value }
-        else if request.characteristic.uuid == CBUUID(string: "2A4E") { data = Data([1]) }
+        else if request.characteristic.uuid == gattUUID(0x2A4E) { data = Data([1]) }
         else {
             peripheral.respond(to: request, withResult: .readNotPermitted)
             return
@@ -216,16 +221,16 @@ final class BluetoothRemote: NSObject, ObservableObject, CBPeripheralManagerDele
                 result = .invalidOffset
             } else if request.value?.count != 1 {
                 result = .invalidAttributeValueLength
-            } else if request.characteristic.uuid == CBUUID(string: "2A4C") {
+            } else if request.characteristic.uuid == gattUUID(0x2A4C) {
                 if request.value![0] > 1 { result = .requestNotSupported }
-            } else if request.characteristic.uuid == CBUUID(string: "2A4E") {
+            } else if request.characteristic.uuid == gattUUID(0x2A4E) {
                 // This consumer-only device supports Report Protocol, not Boot Protocol.
                 if request.value![0] != 1 { result = .requestNotSupported }
             } else { result = .writeNotPermitted }
             if result != .success { break }
         }
         if result == .success {
-            for request in requests where request.characteristic.uuid == CBUUID(string: "2A4C") {
+            for request in requests where request.characteristic.uuid == gattUUID(0x2A4C) {
                 suspended = request.value![0] == 0
                 if suspended {
                     outbox.replaceWithReleases(for: subscriptions)
@@ -240,6 +245,10 @@ final class BluetoothRemote: NSObject, ObservableObject, CBPeripheralManagerDele
     func peripheralManagerIsReady(toUpdateSubscribers peripheral: CBPeripheralManager) {
         guard peripheral === manager else { return }
         flush()
+    }
+
+    private func gattUUID(_ assignedNumber: UInt16) -> CBUUID {
+        CBUUID(string: HIDProfile.bluetoothUUID(assignedNumber))
     }
 
     private func reportID(_ characteristic: CBCharacteristic) -> UInt8? {

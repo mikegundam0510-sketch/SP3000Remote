@@ -54,7 +54,7 @@ struct RemoteView: View {
 
                 VStack(spacing: 10) {
                     Text("DAP Remote").font(.largeTitle.bold())
-                    Label("藍牙測試版", systemImage: "antenna.radiowaves.left.and.right")
+                    Label("藍牙測試版 \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—")", systemImage: "antenna.radiowaves.left.and.right")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(silver)
                     Text(remote.status)
@@ -105,7 +105,6 @@ struct RemoteView: View {
                 if !remote.diagnostic.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("連線診斷").font(.headline)
-                        Text("iPhone 未接受遙控服務或配對未能完成；目前尚未建立可用連線。")
                         Text(remote.diagnostic).textSelection(.enabled)
                         Button("開啟 iPhone 設定") {
                             if let url = URL(string: UIApplication.openSettingsURLString) {

@@ -1,7 +1,27 @@
 import XCTest
 @testable import RemoteCore
+#if canImport(CoreBluetooth)
+import CoreBluetooth
+#endif
 
 final class RemoteCoreTests: XCTestCase {
+#if canImport(CoreBluetooth)
+    func testCoreBluetoothPreservesFullSIGUUIDRepresentation() {
+        // Exercise Apple's actual CBUUID conversion, which cannot be tested on Linux.
+        // Publishing, advertising and ATT lookups all need this same representation.
+        let assignedNumbers: [UInt16] = [0x1812, 0x2A4D, 0x2908]
+        for assignedNumber in assignedNumbers {
+            let uuid = CBUUID(string: HIDProfile.bluetoothUUID(assignedNumber))
+            let expected = Data([
+                0, 0, UInt8(assignedNumber >> 8), UInt8(assignedNumber & 0xFF),
+                0, 0, 0x10, 0, 0x80, 0, 0, 0x80, 0x5F, 0x9B, 0x34, 0xFB
+            ])
+            XCTAssertEqual(uuid.data.count, 16)
+            XCTAssertEqual(uuid.data, expected)
+        }
+    }
+#endif
+
     func testEveryCommandMatchesAndroidConsumerUsages() {
         let expected: [(RemoteCommand, UInt8, [UInt8])] = [
             (.previous, 1, [4]), (.playPause, 1, [1]), (.next, 1, [2]),

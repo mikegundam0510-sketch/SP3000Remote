@@ -23,6 +23,15 @@ public enum HIDProfile {
     public static let extendedReportID: UInt8 = 4
     public static let name = "DAP Remote"
 
+    /// Preserve the full SIG-base representation when constructing a CBUUID.
+    /// Apple's peripheral implementation can reject short-form assigned UUIDs
+    /// as reserved (CBErrorDomain 8), despite their equivalent wire identity.
+    public static func bluetoothUUID(_ assignedNumber: UInt16) -> String {
+        let hex = String(assignedNumber, radix: 16, uppercase: true)
+        return "0000" + String(repeating: "0", count: 4 - hex.count)
+            + hex + "-0000-1000-8000-00805F9B34FB"
+    }
+
     // The Android app's Consumer Control collections, with their original report IDs.
     // GATT Report Reference descriptors identify reports; notification values omit the ID.
     public static let reportMap: [UInt8] = [

@@ -4,6 +4,16 @@
 
 **此版本是可供實機驗證的原型，尚未確認 SP3000 相容性。** Android 版使用傳統 Bluetooth HID；此版本使用 CoreBluetooth 的 BLE HID over GATT，兩者不可視為已驗證等效。第三方 App 的宣傳不能證明此實作可在所有 iPhone 或 SP3000 上運作。系統可能拒絕發佈 HID 服務，接收端也可能無法搜尋、配對或處理報告。App 會顯示啟動錯誤，且僅在接收端訂閱媒體報告後啟用按鍵。
 
+## 0.2：針對實機 Code 8 的修正
+
+0.1 已收到使用者實機回報：`CBErrorDomain / 8: The specified UUID is not allowed for this operation`，失敗發生在服務發佈階段。
+
+0.2 將 GATT 服務、特徵、描述符、廣播及 ATT 比較全部統一使用 Bluetooth SIG 的完整 128-bit UUID，例如 `00001812-0000-1000-8000-00805F9B34FB`。這與短格式 `1812` 表示相同的標準服務，但可避開 CoreBluetooth 對短格式的保留 UUID 檢查；[darwin-bt-remote 的 iOS 實作及說明](https://github.com/jqssun/darwin-bt-remote#ios-hogp) 亦採用完整格式。未引入該專案的程式碼或依賴。
+
+新增 macOS 測試會透過 Apple 的實際 `CBUUID` 建構器確認服務、特徵及描述符保留 16-byte 表示。這個測試不會發佈服務，不能取代 iPhone 實機測試；0.2 的 iPhone 服務發佈、SP3000 配對及按鍵功能仍待實測。
+
+測試時先停止其他遙控 App 的連線，確認本 App 顯示 **藍牙測試版 0.2**，再由 SP3000 搜尋 `DAP Remote`。若仍有錯誤，請回報上方狀態及完整診斷文字；0.2 會顯示 UUID 表示與長度。
+
 ## Windows 安裝（免費 Apple ID）
 
 1. 在 GitHub Actions 開啟成功的 **Build iPhone Remote** 執行紀錄，下載 `SP3000Remote-iPhone-unsigned` artifact 並解壓縮。
