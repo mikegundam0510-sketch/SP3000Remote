@@ -4,3 +4,6 @@ build/
 **/build/
 local.properties
 *.iml
+ios/.build/
+ios/.swiftpm/
+**/xcuserdata/
